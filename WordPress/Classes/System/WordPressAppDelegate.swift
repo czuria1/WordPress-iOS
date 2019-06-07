@@ -6,7 +6,7 @@ import WordPressAuthenticator
 import WordPressComStatsiOS
 import WordPressShared
 import AlamofireNetworkActivityIndicator
-import ZendeskCoreSDK
+//import ZendeskCoreSDK
 
 class WordPressAppDelegate: UIResponder, UIApplicationDelegate {
 
@@ -187,8 +187,8 @@ class WordPressAppDelegate: UIResponder, UIApplicationDelegate {
 
 #if DEBUG
         KeychainTools.processKeychainDebugArguments()
-        CoreLogger.enabled = true
-        CoreLogger.logLevel = .debug
+//        CoreLogger.enabled = true
+//        CoreLogger.logLevel = .debug
 #endif
 
         ZendeskUtils.setup()

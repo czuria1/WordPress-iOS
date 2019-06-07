@@ -1,6 +1,6 @@
 import Foundation
-import ZendeskSDK
-import ZendeskCoreSDK
+//import ZendeskSDK
+//import ZendeskCoreSDK
 import CoreTelephony
 import WordPressAuthenticator
 
@@ -73,16 +73,16 @@ extension NSNotification.Name {
                 toggleZendesk(enabled: false)
                 return
         }
-
-        Zendesk.initialize(appId: appId, clientId: clientId, zendeskUrl: url)
-        Support.initialize(withZendesk: Zendesk.instance)
-
-        ZendeskUtils.sharedInstance.haveUserIdentity = getUserProfile()
-        toggleZendesk(enabled: true)
-
-        // User has accessed a single ticket view, typically via the Zendesk Push Notification alert.
-        // In this case, we'll clear the Push Notification indicators.
-        NotificationCenter.default.addObserver(self, selector: #selector(ticketViewed(_:)), name: NSNotification.Name(rawValue: ZDKAPI_CommentListStarting), object: nil)
+//
+//        Zendesk.initialize(appId: appId, clientId: clientId, zendeskUrl: url)
+//        Support.initialize(withZendesk: Zendesk.instance)
+//
+//        ZendeskUtils.sharedInstance.haveUserIdentity = getUserProfile()
+//        toggleZendesk(enabled: true)
+//
+//        // User has accessed a single ticket view, typically via the Zendesk Push Notification alert.
+//        // In this case, we'll clear the Push Notification indicators.
+//        NotificationCenter.default.addObserver(self, selector: #selector(ticketViewed(_:)), name: NSNotification.Name(rawValue: ZDKAPI_CommentListStarting), object: nil)
 
         // Get unread notification count from User Defaults.
         unreadNotificationsCount = UserDefaults.standard.integer(forKey: Constants.userDefaultsZendeskUnreadNotifications)
@@ -100,106 +100,106 @@ extension NSNotification.Name {
     /// Displays the Zendesk Help Center from the given controller, filtered by the mobile category and articles labelled as iOS.
     ///
     func showHelpCenterIfPossible(from controller: UIViewController, with sourceTag: WordPressSupportSourceTag? = nil) {
-
-        ZendeskUtils.presentInController = controller
-        let haveUserIdentity = ZendeskUtils.sharedInstance.haveUserIdentity
-
-        // Since user information is not needed to display the Help Center,
-        // if a user identity has not been created, create an empty identity.
-        if !haveUserIdentity {
-            let zendeskIdentity = Identity.createAnonymous()
-            Zendesk.instance?.setIdentity(zendeskIdentity)
-        }
-
-        self.sourceTag = sourceTag
-        WPAnalytics.track(.supportHelpCenterViewed)
-
-        let helpCenterConfig = HelpCenterUiConfiguration()
-        helpCenterConfig.groupType = .category
-        helpCenterConfig.groupIds = [Constants.mobileCategoryID as NSNumber]
-        helpCenterConfig.labels = [Constants.articleLabel]
-
-        // If we don't have the user's information, disable 'Contact Us' via the Help Center and Article view.
-        helpCenterConfig.hideContactSupport = !haveUserIdentity
-        let articleConfig = ArticleUiConfiguration()
-        articleConfig.hideContactSupport = !haveUserIdentity
-
-        // Get custom request configuration so new tickets from this path have all the necessary information.
-        let newRequestConfig = self.createRequest()
-
-
-        let helpCenterController = HelpCenterUi.buildHelpCenterOverviewUi(withConfigs: [helpCenterConfig, articleConfig, newRequestConfig])
-        ZendeskUtils.showZendeskView(helpCenterController)
+//
+//        ZendeskUtils.presentInController = controller
+//        let haveUserIdentity = ZendeskUtils.sharedInstance.haveUserIdentity
+//
+//        // Since user information is not needed to display the Help Center,
+//        // if a user identity has not been created, create an empty identity.
+//        if !haveUserIdentity {
+////            let zendeskIdentity = Identity.createAnonymous()
+////            Zendesk.instance?.setIdentity(zendeskIdentity)
+//        }
+//
+//        self.sourceTag = sourceTag
+//        WPAnalytics.track(.supportHelpCenterViewed)
+//
+//        let helpCenterConfig = HelpCenterUiConfiguration()
+//        helpCenterConfig.groupType = .category
+//        helpCenterConfig.groupIds = [Constants.mobileCategoryID as NSNumber]
+//        helpCenterConfig.labels = [Constants.articleLabel]
+//
+//        // If we don't have the user's information, disable 'Contact Us' via the Help Center and Article view.
+//        helpCenterConfig.hideContactSupport = !haveUserIdentity
+//        let articleConfig = ArticleUiConfiguration()
+//        articleConfig.hideContactSupport = !haveUserIdentity
+//
+//        // Get custom request configuration so new tickets from this path have all the necessary information.
+//        let newRequestConfig = self.createRequest()
+//
+//
+//        let helpCenterController = HelpCenterUi.buildHelpCenterOverviewUi(withConfigs: [helpCenterConfig, articleConfig, newRequestConfig])
+//        ZendeskUtils.showZendeskView(helpCenterController)
     }
 
     /// Displays the Zendesk New Request view from the given controller, for users to submit new tickets.
     ///
     func showNewRequestIfPossible(from controller: UIViewController, with sourceTag: WordPressSupportSourceTag? = nil) {
-
-        ZendeskUtils.presentInController = controller
-
-        ZendeskUtils.createIdentity { success in
-            guard success else {
-                return
-            }
-
-            self.sourceTag = sourceTag
-            WPAnalytics.track(.supportNewRequestViewed)
-
-            let newRequestConfig = self.createRequest()
-            let newRequestController = RequestUi.buildRequestUi(with: [newRequestConfig])
-            ZendeskUtils.showZendeskView(newRequestController)
-        }
+//
+//        ZendeskUtils.presentInController = controller
+//
+//        ZendeskUtils.createIdentity { success in
+//            guard success else {
+//                return
+//            }
+//
+//            self.sourceTag = sourceTag
+//            WPAnalytics.track(.supportNewRequestViewed)
+//
+//            let newRequestConfig = self.createRequest()
+//            let newRequestController = RequestUi.buildRequestUi(with: [newRequestConfig])
+//            ZendeskUtils.showZendeskView(newRequestController)
+//        }
     }
 
     /// Displays the Zendesk Request List view from the given controller, allowing user to access their tickets.
     ///
     func showTicketListIfPossible(from controller: UIViewController, with sourceTag: WordPressSupportSourceTag? = nil) {
-
-        ZendeskUtils.presentInController = controller
-
-        ZendeskUtils.createIdentity { success in
-            guard success else {
-                return
-            }
-
-            self.sourceTag = sourceTag
-            WPAnalytics.track(.supportTicketListViewed)
-
-            // Get custom request configuration so new tickets from this path have all the necessary information.
-            let newRequestConfig = self.createRequest()
-
-            let requestListController = RequestUi.buildRequestList(with: [newRequestConfig])
-            ZendeskUtils.showZendeskView(requestListController)
-        }
+//
+//        ZendeskUtils.presentInController = controller
+//
+//        ZendeskUtils.createIdentity { success in
+//            guard success else {
+//                return
+//            }
+//
+//            self.sourceTag = sourceTag
+//            WPAnalytics.track(.supportTicketListViewed)
+//
+//            // Get custom request configuration so new tickets from this path have all the necessary information.
+//            let newRequestConfig = self.createRequest()
+//
+//            let requestListController = RequestUi.buildRequestList(with: [newRequestConfig])
+//            ZendeskUtils.showZendeskView(requestListController)
+//        }
     }
 
     /// Displays an alert allowing the user to change their Support email address.
     ///
     func showSupportEmailPrompt(from controller: UIViewController, completion: @escaping (Bool) -> Void) {
-        ZendeskUtils.presentInController = controller
-
-        ZendeskUtils.getUserInformationAndShowPrompt(withName: false) { success in
-            completion(success)
-        }
+//        ZendeskUtils.presentInController = controller
+//
+//        ZendeskUtils.getUserInformationAndShowPrompt(withName: false) { success in
+//            completion(success)
+//        }
     }
 
     func cacheUnlocalizedSitePlans() {
-        guard !WordPressComLanguageDatabase().deviceLanguage.slug.hasPrefix("en") else {
-            // Don't fetch if its already "en".
-            return
-        }
-
-        let context = ContextManager.shared.mainContext
-        let accountService = AccountService(managedObjectContext: context)
-        guard let account = accountService.defaultWordPressComAccount() else {
-            return
-        }
-
-        let planService = PlanService(managedObjectContext: context)
-        planService.getAllSitesNonLocalizedPlanDescriptionsForAccount(account, success: { plans in
-            self.sitePlansCache = plans
-        }, failure: { error in })
+//        guard !WordPressComLanguageDatabase().deviceLanguage.slug.hasPrefix("en") else {
+//            // Don't fetch if its already "en".
+//            return
+//        }
+//
+//        let context = ContextManager.shared.mainContext
+//        let accountService = AccountService(managedObjectContext: context)
+//        guard let account = accountService.defaultWordPressComAccount() else {
+//            return
+//        }
+//
+//        let planService = PlanService(managedObjectContext: context)
+//        planService.getAllSitesNonLocalizedPlanDescriptionsForAccount(account, success: { plans in
+//            self.sitePlansCache = plans
+//        }, failure: { error in })
     }
 
     // MARK: - Device Registration
@@ -208,19 +208,19 @@ extension NSNotification.Name {
     /// Actual registration is done when a user selects one of the Zendesk views.
     ///
     static func setNeedToRegisterDevice(_ identifier: String) {
-        ZendeskUtils.sharedInstance.deviceID = identifier
+//        ZendeskUtils.sharedInstance.deviceID = identifier
     }
 
     /// Unregisters the device ID from Zendesk for push notifications.
     ///
     static func unregisterDevice() {
-        guard let zendeskInstance = Zendesk.instance else {
-            DDLogInfo("No Zendesk instance. Unable to unregister device.")
-            return
-        }
-
-        ZDKPushProvider(zendesk: zendeskInstance).unregisterForPush()
-        DDLogInfo("Zendesk successfully unregistered stored device.")
+//        guard let zendeskInstance = Zendesk.instance else {
+//            DDLogInfo("No Zendesk instance. Unable to unregister device.")
+//            return
+//        }
+//
+//        ZDKPushProvider(zendesk: zendeskInstance).unregisterForPush()
+//        DDLogInfo("Zendesk successfully unregistered stored device.")
     }
 
     // MARK: - Push Notifications
@@ -230,15 +230,15 @@ extension NSNotification.Name {
     /// the view will be refreshed.
     ///
     static func handlePushNotification(_ userInfo: NSDictionary) {
-        WPAnalytics.track(.supportReceivedResponseFromSupport)
-        guard zendeskEnabled == true,
-            let payload = userInfo as? [AnyHashable: Any],
-            let requestId = payload["zendesk_sdk_request_id"] as? String else {
-                DDLogInfo("Zendesk push notification payload invalid.")
-                return
-        }
-
-        let _ = Support.instance?.refreshRequest(requestId: requestId)
+//        WPAnalytics.track(.supportReceivedResponseFromSupport)
+//        guard zendeskEnabled == true,
+//            let payload = userInfo as? [AnyHashable: Any],
+//            let requestId = payload["zendesk_sdk_request_id"] as? String else {
+//                DDLogInfo("Zendesk push notification payload invalid.")
+//                return
+//        }
+//
+//        let _ = Support.instance?.refreshRequest(requestId: requestId)
     }
 
     /// This handles all Zendesk push notifications. (The in-app flow goes through here as well.)
@@ -407,65 +407,65 @@ private extension ZendeskUtils {
 
     static func createZendeskIdentity(completion: @escaping (Bool) -> Void) {
 
-        guard let userEmail = ZendeskUtils.sharedInstance.userEmail else {
-            DDLogInfo("No user email to create Zendesk identity with.")
-            let identity = Identity.createAnonymous()
-            Zendesk.instance?.setIdentity(identity)
-            completion(false)
-            return
-        }
-
-        let zendeskIdentity = Identity.createAnonymous(name: ZendeskUtils.sharedInstance.userName, email: userEmail)
-        Zendesk.instance?.setIdentity(zendeskIdentity)
-        DDLogDebug("Zendesk identity created with email '\(userEmail)' and name '\(ZendeskUtils.sharedInstance.userName ?? "")'.")
-        registerDeviceIfNeeded()
-        completion(true)
+//        guard let userEmail = ZendeskUtils.sharedInstance.userEmail else {
+//            DDLogInfo("No user email to create Zendesk identity with.")
+//            let identity = Identity.createAnonymous()
+//            Zendesk.instance?.setIdentity(identity)
+//            completion(false)
+//            return
+//        }
+//
+//        let zendeskIdentity = Identity.createAnonymous(name: ZendeskUtils.sharedInstance.userName, email: userEmail)
+//        Zendesk.instance?.setIdentity(zendeskIdentity)
+//        DDLogDebug("Zendesk identity created with email '\(userEmail)' and name '\(ZendeskUtils.sharedInstance.userName ?? "")'.")
+//        registerDeviceIfNeeded()
+//        completion(true)
     }
 
     static func registerDeviceIfNeeded() {
 
-        guard let deviceID = ZendeskUtils.sharedInstance.deviceID,
-        let zendeskInstance = Zendesk.instance else {
-            return
-        }
-
-        ZDKPushProvider(zendesk: zendeskInstance).register(deviceIdentifier: deviceID, locale: appLanguage) { (pushResponse, error) in
-            if let error = error {
-                DDLogInfo("Zendesk couldn't register device: \(deviceID). Error: \(error)")
-            } else {
-                ZendeskUtils.sharedInstance.deviceID = nil
-                DDLogDebug("Zendesk successfully registered device: \(deviceID)")
-            }
-        }
+//        guard let deviceID = ZendeskUtils.sharedInstance.deviceID,
+//        let zendeskInstance = Zendesk.instance else {
+//            return
+//        }
+//
+//        ZDKPushProvider(zendesk: zendeskInstance).register(deviceIdentifier: deviceID, locale: appLanguage) { (pushResponse, error) in
+//            if let error = error {
+//                DDLogInfo("Zendesk couldn't register device: \(deviceID). Error: \(error)")
+//            } else {
+//                ZendeskUtils.sharedInstance.deviceID = nil
+//                DDLogDebug("Zendesk successfully registered device: \(deviceID)")
+//            }
+//        }
     }
-
-    func createRequest() -> RequestUiConfiguration {
-
-        let requestConfig = RequestUiConfiguration()
-
-        // Set Zendesk ticket form to use
-        requestConfig.ticketFormID = TicketFieldIDs.form as NSNumber
-
-        // Set form field values
-        var ticketFields = [ZDKCustomField]()
-        ticketFields.append(ZDKCustomField(fieldId: TicketFieldIDs.appVersion as NSNumber, andValue: ZendeskUtils.appVersion))
-        ticketFields.append(ZDKCustomField(fieldId: TicketFieldIDs.allBlogs as NSNumber, andValue: ZendeskUtils.getBlogInformation()))
-        ticketFields.append(ZDKCustomField(fieldId: TicketFieldIDs.deviceFreeSpace as NSNumber, andValue: ZendeskUtils.getDeviceFreeSpace()))
-        ticketFields.append(ZDKCustomField(fieldId: TicketFieldIDs.networkInformation as NSNumber, andValue: ZendeskUtils.getNetworkInformation()))
-        ticketFields.append(ZDKCustomField(fieldId: TicketFieldIDs.logs as NSNumber, andValue: ZendeskUtils.getLogFile()))
-        ticketFields.append(ZDKCustomField(fieldId: TicketFieldIDs.currentSite as NSNumber, andValue: ZendeskUtils.getCurrentSiteDescription()))
-        ticketFields.append(ZDKCustomField(fieldId: TicketFieldIDs.sourcePlatform as NSNumber, andValue: Constants.sourcePlatform))
-        ticketFields.append(ZDKCustomField(fieldId: TicketFieldIDs.appLanguage as NSNumber, andValue: ZendeskUtils.appLanguage))
-        requestConfig.fields = ticketFields
-
-        // Set tags
-        requestConfig.tags = ZendeskUtils.getTags()
-
-        // Set the ticket subject
-        requestConfig.subject = Constants.ticketSubject
-
-        return requestConfig
-    }
+//
+//    func createRequest() -> RequestUiConfiguration {
+//
+//        let requestConfig = RequestUiConfiguration()
+//
+//        // Set Zendesk ticket form to use
+//        requestConfig.ticketFormID = TicketFieldIDs.form as NSNumber
+//
+//        // Set form field values
+//        var ticketFields = [ZDKCustomField]()
+//        ticketFields.append(ZDKCustomField(fieldId: TicketFieldIDs.appVersion as NSNumber, andValue: ZendeskUtils.appVersion))
+//        ticketFields.append(ZDKCustomField(fieldId: TicketFieldIDs.allBlogs as NSNumber, andValue: ZendeskUtils.getBlogInformation()))
+//        ticketFields.append(ZDKCustomField(fieldId: TicketFieldIDs.deviceFreeSpace as NSNumber, andValue: ZendeskUtils.getDeviceFreeSpace()))
+//        ticketFields.append(ZDKCustomField(fieldId: TicketFieldIDs.networkInformation as NSNumber, andValue: ZendeskUtils.getNetworkInformation()))
+//        ticketFields.append(ZDKCustomField(fieldId: TicketFieldIDs.logs as NSNumber, andValue: ZendeskUtils.getLogFile()))
+//        ticketFields.append(ZDKCustomField(fieldId: TicketFieldIDs.currentSite as NSNumber, andValue: ZendeskUtils.getCurrentSiteDescription()))
+//        ticketFields.append(ZDKCustomField(fieldId: TicketFieldIDs.sourcePlatform as NSNumber, andValue: Constants.sourcePlatform))
+//        ticketFields.append(ZDKCustomField(fieldId: TicketFieldIDs.appLanguage as NSNumber, andValue: ZendeskUtils.appLanguage))
+//        requestConfig.fields = ticketFields
+//
+//        // Set tags
+//        requestConfig.tags = ZendeskUtils.getTags()
+//
+//        // Set the ticket subject
+//        requestConfig.subject = Constants.ticketSubject
+//
+//        return requestConfig
+//    }
 
     // MARK: - View
 
@@ -491,51 +491,51 @@ private extension ZendeskUtils {
     // MARK: - Get User Information
 
     static func getUserInformationFrom(jetpackState: JetpackState) {
-        ZendeskUtils.sharedInstance.userName = jetpackState.connectedUsername
-        ZendeskUtils.sharedInstance.userEmail = jetpackState.connectedEmail
+//        ZendeskUtils.sharedInstance.userName = jetpackState.connectedUsername
+//        ZendeskUtils.sharedInstance.userEmail = jetpackState.connectedEmail
     }
 
     static func getUserInformationFrom(blog: Blog, completion: @escaping () -> ()) {
-
-        ZendeskUtils.sharedInstance.userName = blog.username
-
-        // Get email address from remote profile
-        guard let username = blog.username,
-            let password = blog.password,
-            let xmlrpc = blog.xmlrpc,
-            let service = UsersService(username: username, password: password, xmlrpc: xmlrpc) else {
-                return
-        }
-
-        service.fetchProfile { userProfile in
-            guard let userProfile = userProfile else {
-                completion()
-                return
-            }
-            ZendeskUtils.sharedInstance.userEmail = userProfile.email
-            completion()
-        }
+//
+//        ZendeskUtils.sharedInstance.userName = blog.username
+//
+//        // Get email address from remote profile
+//        guard let username = blog.username,
+//            let password = blog.password,
+//            let xmlrpc = blog.xmlrpc,
+//            let service = UsersService(username: username, password: password, xmlrpc: xmlrpc) else {
+//                return
+//        }
+//
+//        service.fetchProfile { userProfile in
+//            guard let userProfile = userProfile else {
+//                completion()
+//                return
+//            }
+//            ZendeskUtils.sharedInstance.userEmail = userProfile.email
+//            completion()
+//        }
     }
 
     static func getUserInformationFrom(wpAccount: WPAccount) {
-
-        guard let api = wpAccount.wordPressComRestApi else {
-            DDLogInfo("Zendesk: No wordPressComRestApi.")
-            return
-        }
-
-        let service = AccountSettingsService(userID: wpAccount.userID.intValue, api: api)
-
-        guard let accountSettings = service.settings else {
-            DDLogInfo("Zendesk: No accountSettings.")
-            return
-        }
-
-        ZendeskUtils.sharedInstance.userEmail = wpAccount.email
-        ZendeskUtils.sharedInstance.userName = wpAccount.username
-        if accountSettings.firstName.count > 0 || accountSettings.lastName.count > 0 {
-            ZendeskUtils.sharedInstance.userName = (accountSettings.firstName + " " + accountSettings.lastName).trim()
-        }
+//
+//        guard let api = wpAccount.wordPressComRestApi else {
+//            DDLogInfo("Zendesk: No wordPressComRestApi.")
+//            return
+//        }
+//
+//        let service = AccountSettingsService(userID: wpAccount.userID.intValue, api: api)
+//
+//        guard let accountSettings = service.settings else {
+//            DDLogInfo("Zendesk: No accountSettings.")
+//            return
+//        }
+//
+//        ZendeskUtils.sharedInstance.userEmail = wpAccount.email
+//        ZendeskUtils.sharedInstance.userName = wpAccount.username
+//        if accountSettings.firstName.count > 0 || accountSettings.lastName.count > 0 {
+//            ZendeskUtils.sharedInstance.userName = (accountSettings.firstName + " " + accountSettings.lastName).trim()
+//        }
     }
 
     // MARK: - User Defaults
@@ -676,31 +676,32 @@ private extension ZendeskUtils {
     }
 
     static func getNetworkInformation() -> String {
-
-        var networkInformation = [String]()
-
-        let reachibilityStatus = ZDKReachability.forInternetConnection().currentReachabilityStatus()
-
-        let networkType: String = {
-            switch reachibilityStatus {
-            case .reachableViaWiFi:
-                return Constants.networkWiFi
-            case .reachableViaWWAN:
-                return Constants.networkWWAN
-            default:
-                return Constants.unknownValue
-            }
-        }()
-
-        let networkCarrier = CTTelephonyNetworkInfo().subscriberCellularProvider
-        let carrierName = networkCarrier?.carrierName ?? Constants.unknownValue
-        let carrierCountryCode = networkCarrier?.isoCountryCode ?? Constants.unknownValue
-
-        networkInformation.append("\(Constants.networkTypeLabel) \(networkType)")
-        networkInformation.append("\(Constants.networkCarrierLabel) \(carrierName)")
-        networkInformation.append("\(Constants.networkCountryCodeLabel) \(carrierCountryCode)")
-
-        return networkInformation.joined(separator: "\n")
+//
+//        var networkInformation = [String]()
+//
+//        let reachibilityStatus = ZDKReachability.forInternetConnection().currentReachabilityStatus()
+//
+//        let networkType: String = {
+//            switch reachibilityStatus {
+//            case .reachableViaWiFi:
+//                return Constants.networkWiFi
+//            case .reachableViaWWAN:
+//                return Constants.networkWWAN
+//            default:
+//                return Constants.unknownValue
+//            }
+//        }()
+//
+//        let networkCarrier = CTTelephonyNetworkInfo().subscriberCellularProvider
+//        let carrierName = networkCarrier?.carrierName ?? Constants.unknownValue
+//        let carrierCountryCode = networkCarrier?.isoCountryCode ?? Constants.unknownValue
+//
+//        networkInformation.append("\(Constants.networkTypeLabel) \(networkType)")
+//        networkInformation.append("\(Constants.networkCarrierLabel) \(carrierName)")
+//        networkInformation.append("\(Constants.networkCountryCodeLabel) \(carrierCountryCode)")
+//
+//        return networkInformation.joined(separator: "\n")
+        return ""
     }
 
     // MARK: - Push Notification Helpers
@@ -841,63 +842,63 @@ private extension ZendeskUtils {
 
     static func observeZendeskNotifications() {
         // Ticket Attachments
-        NotificationCenter.default.addObserver(self, selector: #selector(ZendeskUtils.zendeskNotification(_:)),
-                                               name: NSNotification.Name(rawValue: ZDKAPI_UploadAttachmentSuccess), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(ZendeskUtils.zendeskNotification(_:)),
-                                               name: NSNotification.Name(rawValue: ZDKAPI_UploadAttachmentError), object: nil)
-
-        // New Ticket Creation
-        NotificationCenter.default.addObserver(self, selector: #selector(ZendeskUtils.zendeskNotification(_:)),
-                                               name: NSNotification.Name(rawValue: ZDKAPI_RequestSubmissionSuccess), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(ZendeskUtils.zendeskNotification(_:)),
-                                               name: NSNotification.Name(rawValue: ZDKAPI_RequestSubmissionError), object: nil)
-
-        // Ticket Reply
-        NotificationCenter.default.addObserver(self, selector: #selector(ZendeskUtils.zendeskNotification(_:)),
-                                               name: NSNotification.Name(rawValue: ZDKAPI_CommentSubmissionSuccess), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(ZendeskUtils.zendeskNotification(_:)),
-                                               name: NSNotification.Name(rawValue: ZDKAPI_CommentSubmissionError), object: nil)
-
-        // View Ticket List
-        NotificationCenter.default.addObserver(self, selector: #selector(ZendeskUtils.zendeskNotification(_:)),
-                                               name: NSNotification.Name(rawValue: ZDKAPI_RequestsError), object: nil)
-
-        // View Individual Ticket
-        NotificationCenter.default.addObserver(self, selector: #selector(ZendeskUtils.zendeskNotification(_:)),
-                                               name: NSNotification.Name(rawValue: ZDKAPI_CommentListSuccess), object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(ZendeskUtils.zendeskNotification(_:)),
-                                               name: NSNotification.Name(rawValue: ZDKAPI_CommentListError), object: nil)
-
-        // Help Center
-        NotificationCenter.default.addObserver(self, selector: #selector(ZendeskUtils.zendeskNotification(_:)),
-                                               name: NSNotification.Name(rawValue: ZD_HC_SearchSuccess), object: nil)
+//        NotificationCenter.default.addObserver(self, selector: #selector(ZendeskUtils.zendeskNotification(_:)),
+//                                               name: NSNotification.Name(rawValue: ZDKAPI_UploadAttachmentSuccess), object: nil)
+//        NotificationCenter.default.addObserver(self, selector: #selector(ZendeskUtils.zendeskNotification(_:)),
+//                                               name: NSNotification.Name(rawValue: ZDKAPI_UploadAttachmentError), object: nil)
+//
+//        // New Ticket Creation
+//        NotificationCenter.default.addObserver(self, selector: #selector(ZendeskUtils.zendeskNotification(_:)),
+//                                               name: NSNotification.Name(rawValue: ZDKAPI_RequestSubmissionSuccess), object: nil)
+//        NotificationCenter.default.addObserver(self, selector: #selector(ZendeskUtils.zendeskNotification(_:)),
+//                                               name: NSNotification.Name(rawValue: ZDKAPI_RequestSubmissionError), object: nil)
+//
+//        // Ticket Reply
+//        NotificationCenter.default.addObserver(self, selector: #selector(ZendeskUtils.zendeskNotification(_:)),
+//                                               name: NSNotification.Name(rawValue: ZDKAPI_CommentSubmissionSuccess), object: nil)
+//        NotificationCenter.default.addObserver(self, selector: #selector(ZendeskUtils.zendeskNotification(_:)),
+//                                               name: NSNotification.Name(rawValue: ZDKAPI_CommentSubmissionError), object: nil)
+//
+//        // View Ticket List
+//        NotificationCenter.default.addObserver(self, selector: #selector(ZendeskUtils.zendeskNotification(_:)),
+//                                               name: NSNotification.Name(rawValue: ZDKAPI_RequestsError), object: nil)
+//
+//        // View Individual Ticket
+//        NotificationCenter.default.addObserver(self, selector: #selector(ZendeskUtils.zendeskNotification(_:)),
+//                                               name: NSNotification.Name(rawValue: ZDKAPI_CommentListSuccess), object: nil)
+//        NotificationCenter.default.addObserver(self, selector: #selector(ZendeskUtils.zendeskNotification(_:)),
+//                                               name: NSNotification.Name(rawValue: ZDKAPI_CommentListError), object: nil)
+//
+//        // Help Center
+//        NotificationCenter.default.addObserver(self, selector: #selector(ZendeskUtils.zendeskNotification(_:)),
+//                                               name: NSNotification.Name(rawValue: ZD_HC_SearchSuccess), object: nil)
     }
 
     @objc static func zendeskNotification(_ notification: Foundation.Notification) {
-        switch notification.name.rawValue {
-        case ZDKAPI_RequestSubmissionSuccess:
-            WPAnalytics.track(.supportNewRequestCreated)
-        case ZDKAPI_RequestSubmissionError:
-            WPAnalytics.track(.supportNewRequestFailed)
-        case ZDKAPI_UploadAttachmentSuccess:
-            WPAnalytics.track(.supportNewRequestFileAttached)
-        case ZDKAPI_UploadAttachmentError:
-            WPAnalytics.track(.supportNewRequestFileAttachmentFailed)
-        case ZDKAPI_CommentSubmissionSuccess:
-            WPAnalytics.track(.supportTicketUserReplied)
-        case ZDKAPI_CommentSubmissionError:
-            WPAnalytics.track(.supportTicketUserReplyFailed)
-        case ZDKAPI_RequestsError:
-            WPAnalytics.track(.supportTicketListViewFailed)
-        case ZDKAPI_CommentListSuccess:
-            WPAnalytics.track(.supportTicketUserViewed)
-        case ZDKAPI_CommentListError:
-            WPAnalytics.track(.supportTicketViewFailed)
-        case ZD_HC_SearchSuccess:
-            WPAnalytics.track(.supportHelpCenterUserSearched)
-        default:
-            break
-        }
+//        switch notification.name.rawValue {
+//        case ZDKAPI_RequestSubmissionSuccess:
+//            WPAnalytics.track(.supportNewRequestCreated)
+//        case ZDKAPI_RequestSubmissionError:
+//            WPAnalytics.track(.supportNewRequestFailed)
+//        case ZDKAPI_UploadAttachmentSuccess:
+//            WPAnalytics.track(.supportNewRequestFileAttached)
+//        case ZDKAPI_UploadAttachmentError:
+//            WPAnalytics.track(.supportNewRequestFileAttachmentFailed)
+//        case ZDKAPI_CommentSubmissionSuccess:
+//            WPAnalytics.track(.supportTicketUserReplied)
+//        case ZDKAPI_CommentSubmissionError:
+//            WPAnalytics.track(.supportTicketUserReplyFailed)
+//        case ZDKAPI_RequestsError:
+//            WPAnalytics.track(.supportTicketListViewFailed)
+//        case ZDKAPI_CommentListSuccess:
+//            WPAnalytics.track(.supportTicketUserViewed)
+//        case ZDKAPI_CommentListError:
+//            WPAnalytics.track(.supportTicketViewFailed)
+//        case ZD_HC_SearchSuccess:
+//            WPAnalytics.track(.supportHelpCenterUserSearched)
+//        default:
+//            break
+//        }
     }
 
     // MARK: - Constants
