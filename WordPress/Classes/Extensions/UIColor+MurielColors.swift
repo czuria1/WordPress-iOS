@@ -20,6 +20,9 @@ enum MurielColorName: String, CustomStringConvertible {
     case wooPurple = "Woo-Purple"
     case yellow
 
+    /// an example of putting the semantic names in the asset file
+    case text
+
     var description: String {
         return rawValue.capitalized
     }
@@ -68,7 +71,6 @@ struct MurielColorIdentifier {
     static let neutral = MurielColorIdentifier(name: .gray)
     static let primary = MurielColorIdentifier(name: .blue)
     static let success = MurielColorIdentifier(name: .green)
-    static let text = MurielColorIdentifier(name: .gray, shade: .shade800)
     static let textSubtle = MurielColorIdentifier(name: .gray, shade: .shade500)
     static let warning = MurielColorIdentifier(name: .hotYellow)
 
@@ -130,8 +132,8 @@ extension UIColor {
         return muriel(color: MurielColorIdentifier(from: .success, shade: shade))
     }
 
-    /// Muriel text color
-    static var text = muriel(color: .text)
+    /// Muriel text color - this one comes from the asset file
+    static var text = muriel(color: MurielColorIdentifier(name: .text))
 
     /// Muriel text subtle color
     static var textSubtle = muriel(color: .textSubtle)
@@ -147,4 +149,18 @@ extension UIColor {
 
     /// Muriel/iOS navgiation shadow color
     static var navigationBarShadow = muriel(color: .navigationBarShadow)
+
+    static var unselected: UIColor {
+        if #available(iOS 13, *) {
+            return UIColor { (traitCollection: UITraitCollection) -> UIColor in
+                if traitCollection.userInterfaceStyle == .dark {
+                    return muriel(color: MurielColorIdentifier(name: .blue, shade: .shade600))
+                } else {
+                    return muriel(color: MurielColorIdentifier(name: .blue, shade: .shade200))
+                }
+            }
+        } else {
+            return muriel(color: MurielColorIdentifier(name: .blue, shade: .shade300))
+        }
+    }
 }

@@ -735,12 +735,21 @@ extension WordPressAppDelegate {
 
 extension WordPressAppDelegate {
     func customizeAppearance() {
-        window?.backgroundColor = WPStyleGuide.itsEverywhereGrey()
-        window?.tintColor = WPStyleGuide.wordPressBlue()
+        if #available(iOS 13, *) {
+            window?.backgroundColor = .systemBackground
+        }
+
 
         if Feature.enabled(.murielColors) {
+            window?.tintColor = .primary
             WPStyleGuide.configureNavigationAppearance()
+
+            if #available(iOS 13, *) {
+                UITabBar.appearance().tintColor = .accent
+                UITabBar.appearance().backgroundColor = .systemGroupedBackground
+            }
         } else {
+            window?.tintColor = WPStyleGuide.wordPressBlue()
             WPStyleGuide.configureNavigationBarAppearance()
 
             UITabBar.appearance().shadowImage = UIImage(color: UIColor(red: 210.0/255.0, green: 222.0/255.0, blue: 230.0/255.0, alpha: 1.0))
@@ -751,46 +760,46 @@ extension WordPressAppDelegate {
             navigationAppearance.shadowImage = WPStyleGuide.navigationBarShadowImage()
             navigationAppearance.barStyle = WPStyleGuide.navigationBarBarStyle()
         }
-
-        let clearImage = UIImage(color: .clear, havingSize: CGSize(width: 320.0, height: 4.0))
-        UINavigationBar.appearance(whenContainedInInstancesOf: [NUXNavigationController.self]).shadowImage = clearImage
-        UINavigationBar.appearance(whenContainedInInstancesOf: [NUXNavigationController.self]).setBackgroundImage(clearImage, for: .default)
-
-        UISegmentedControl.appearance().setTitleTextAttributes( [NSAttributedString.Key.font: WPStyleGuide.regularTextFont()], for: .normal)
-        UIToolbar.appearance().barTintColor = WPStyleGuide.wordPressBlue()
-        UISwitch.appearance().onTintColor = WPStyleGuide.wordPressBlue()
-        UITabBarItem.appearance().setTitleTextAttributes([NSAttributedString.Key.foregroundColor: WPStyleGuide.grey()], for: .normal)
-        UITabBarItem.appearance().setTitleTextAttributes([NSAttributedString.Key.foregroundColor: WPStyleGuide.wordPressBlue()], for: .selected)
-
-        let navReferenceAppearance = UINavigationBar.appearance(whenContainedInInstancesOf: [UIReferenceLibraryViewController.self])
-        navReferenceAppearance.setBackgroundImage(nil, for: .default)
-        navReferenceAppearance.barTintColor = WPStyleGuide.wordPressBlue()
-
-        UIToolbar.appearance(whenContainedInInstancesOf: [UIReferenceLibraryViewController.self]).barTintColor = .darkGray
-
-        WPStyleGuide.configureSearchBarAppearance()
-
-        // SVProgressHUD
-        SVProgressHUD.setBackgroundColor(WPStyleGuide.littleEddieGrey().withAlphaComponent(0.95))
-        SVProgressHUD.setForegroundColor(.white)
-        SVProgressHUD.setErrorImage(UIImage(named: "hud_error")!)
-        SVProgressHUD.setSuccessImage(UIImage(named: "hud_success")!)
-
-        // Media Picker styles
-        let barItemAppearance = UIBarButtonItem.appearance(whenContainedInInstancesOf: [WPMediaPickerViewController.self])
-        barItemAppearance.setTitleTextAttributes([NSAttributedString.Key.foregroundColor: UIColor.white, NSAttributedString.Key.font: WPFontManager.systemSemiBoldFont(ofSize: 16.0)], for: .disabled)
-        UICollectionView.appearance(whenContainedInInstancesOf: [WPMediaPickerViewController.self]).backgroundColor = WPStyleGuide.greyLighten30()
-
-
-        let cellAppearance = WPMediaCollectionViewCell.appearance(whenContainedInInstancesOf: [WPMediaPickerViewController.self])
-        cellAppearance.loadingBackgroundColor = WPStyleGuide.lightGrey()
-        cellAppearance.placeholderBackgroundColor = WPStyleGuide.darkGrey()
-        cellAppearance.placeholderTintColor = WPStyleGuide.greyLighten30()
-        cellAppearance.setCellTintColor(WPStyleGuide.wordPressBlue())
-
-        UIButton.appearance(whenContainedInInstancesOf: [WPActionBar.self]).tintColor = WPStyleGuide.wordPressBlue()
-
-        customizeAppearanceForTextElements()
+//
+//        let clearImage = UIImage(color: .clear, havingSize: CGSize(width: 320.0, height: 4.0))
+//        UINavigationBar.appearance(whenContainedInInstancesOf: [NUXNavigationController.self]).shadowImage = clearImage
+//        UINavigationBar.appearance(whenContainedInInstancesOf: [NUXNavigationController.self]).setBackgroundImage(clearImage, for: .default)
+//
+//        UISegmentedControl.appearance().setTitleTextAttributes( [NSAttributedString.Key.font: WPStyleGuide.regularTextFont()], for: .normal)
+//        UIToolbar.appearance().barTintColor = WPStyleGuide.wordPressBlue()
+//        UISwitch.appearance().onTintColor = WPStyleGuide.wordPressBlue()
+//        UITabBarItem.appearance().setTitleTextAttributes([NSAttributedString.Key.foregroundColor: WPStyleGuide.grey()], for: .normal)
+//        UITabBarItem.appearance().setTitleTextAttributes([NSAttributedString.Key.foregroundColor: WPStyleGuide.wordPressBlue()], for: .selected)
+//
+//        let navReferenceAppearance = UINavigationBar.appearance(whenContainedInInstancesOf: [UIReferenceLibraryViewController.self])
+//        navReferenceAppearance.setBackgroundImage(nil, for: .default)
+//        navReferenceAppearance.barTintColor = WPStyleGuide.wordPressBlue()
+//
+//        UIToolbar.appearance(whenContainedInInstancesOf: [UIReferenceLibraryViewController.self]).barTintColor = .darkGray
+//
+//        WPStyleGuide.configureSearchBarAppearance()
+//
+//        // SVProgressHUD
+//        SVProgressHUD.setBackgroundColor(WPStyleGuide.littleEddieGrey().withAlphaComponent(0.95))
+//        SVProgressHUD.setForegroundColor(.white)
+//        SVProgressHUD.setErrorImage(UIImage(named: "hud_error")!)
+//        SVProgressHUD.setSuccessImage(UIImage(named: "hud_success")!)
+//
+//        // Media Picker styles
+//        let barItemAppearance = UIBarButtonItem.appearance(whenContainedInInstancesOf: [WPMediaPickerViewController.self])
+//        barItemAppearance.setTitleTextAttributes([NSAttributedString.Key.foregroundColor: UIColor.white, NSAttributedString.Key.font: WPFontManager.systemSemiBoldFont(ofSize: 16.0)], for: .disabled)
+//        UICollectionView.appearance(whenContainedInInstancesOf: [WPMediaPickerViewController.self]).backgroundColor = WPStyleGuide.greyLighten30()
+//
+//
+//        let cellAppearance = WPMediaCollectionViewCell.appearance(whenContainedInInstancesOf: [WPMediaPickerViewController.self])
+//        cellAppearance.loadingBackgroundColor = WPStyleGuide.lightGrey()
+//        cellAppearance.placeholderBackgroundColor = WPStyleGuide.darkGrey()
+//        cellAppearance.placeholderTintColor = WPStyleGuide.greyLighten30()
+//        cellAppearance.setCellTintColor(WPStyleGuide.wordPressBlue())
+//
+//        UIButton.appearance(whenContainedInInstancesOf: [WPActionBar.self]).tintColor = WPStyleGuide.wordPressBlue()
+//
+//        customizeAppearanceForTextElements()
     }
 
     private func customizeAppearanceForTextElements() {

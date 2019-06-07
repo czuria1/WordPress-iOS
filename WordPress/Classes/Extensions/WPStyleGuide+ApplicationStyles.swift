@@ -1,6 +1,7 @@
 import Foundation
 import WordPressShared
 
+@objc
 extension WPStyleGuide {
     // MARK: - styles used before Muriel colors are enabled
     public class func navigationBarBackgroundImage() -> UIImage {
@@ -18,11 +19,14 @@ extension WPStyleGuide {
     // MARK: - style the navigation appearance using Muriel colors
     class func configureNavigationAppearance() {
         let navigationAppearance = UINavigationBar.appearance()
-        navigationAppearance.barTintColor = wordPressBlue()
-        navigationAppearance.tintColor = .white
-        navigationAppearance.setBackgroundImage(UIImage(color: .navigationBar), for: .default)
-        navigationAppearance.shadowImage = UIImage(color: .navigationBarShadow)
-        navigationAppearance.barStyle = .black
+        if #available(iOS 13, *) {
+            navigationAppearance.barTintColor = .navigationBar
+        }
+        navigationAppearance.isTranslucent = false
+//        navigationAppearance.tintColor = .white
+//        navigationAppearance.setBackgroundImage(UIImage(color: .navigationBar), for: .default)
+//        navigationAppearance.shadowImage = UIImage(color: .navigationBarShadow)
+//        navigationAppearance.barStyle = .black
 
         let buttonBarAppearance = UIBarButtonItem.appearance()
         buttonBarAppearance.tintColor = .white
@@ -33,5 +37,13 @@ extension WPStyleGuide {
                                                     NSAttributedString.Key.foregroundColor: UIColor(white: 1.0, alpha: 0.25)],
                                                    for: .disabled)
 
+    }
+
+    @objc class func unselectedColor() -> UIColor {
+        return .unselected
+    }
+
+    @objc class func textColor() -> UIColor {
+        return .text
     }
 }

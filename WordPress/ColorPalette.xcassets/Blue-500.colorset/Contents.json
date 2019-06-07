@@ -1,19 +1,55 @@
 {
-  "info": {
-    "author": "io.github.automattic.color-studio",
-    "version": "1.0.3"
+  "info" : {
+    "version" : 1,
+    "author" : "xcode"
   },
-  "colors": [
+  "colors" : [
     {
-      "idiom": "universal",
-      "color": {
-        "components": {
-          "red": "1",
-          "green": "96",
-          "blue": "135",
-          "alpha": 1
-        },
-        "color-space": "srgb"
+      "idiom" : "universal",
+      "color" : {
+        "color-space" : "srgb",
+        "components" : {
+          "red" : "0.004",
+          "alpha" : "1.000",
+          "blue" : "0.529",
+          "green" : "0.376"
+        }
+      }
+    },
+    {
+      "idiom" : "universal",
+      "appearances" : [
+        {
+          "appearance" : "luminosity",
+          "value" : "light"
+        }
+      ],
+      "color" : {
+        "color-space" : "srgb",
+        "components" : {
+          "red" : "0.004",
+          "alpha" : "1.000",
+          "blue" : "0.529",
+          "green" : "0.376"
+        }
+      }
+    },
+    {
+      "idiom" : "universal",
+      "appearances" : [
+        {
+          "appearance" : "luminosity",
+          "value" : "dark"
+        }
+      ],
+      "color" : {
+        "color-space" : "srgb",
+        "components" : {
+          "red" : "0.125",
+          "alpha" : "1.000",
+          "blue" : "0.412",
+          "green" : "0.290"
+        }
       }
     }
   ]

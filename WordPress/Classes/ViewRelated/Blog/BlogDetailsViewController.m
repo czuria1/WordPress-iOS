@@ -271,7 +271,7 @@ NSString * const WPCalypsoDashboardPath = @"https://wordpress.com/stats/";
 
     self.view.accessibilityIdentifier = @"Blog Details Table";
 
-    [WPStyleGuide configureColorsForView:self.view andTableView:self.tableView];
+//    [WPStyleGuide configureColorsForView:self.view andTableView:self.tableView];
     [WPStyleGuide configureAutomaticHeightRowsFor:self.tableView];
 
     [self.tableView registerClass:[WPTableViewCell class] forCellReuseIdentifier:BlogDetailsCellIdentifier];
@@ -1044,7 +1044,7 @@ NSString * const WPCalypsoDashboardPath = @"https://wordpress.com/stats/";
     cell.accessibilityIdentifier = row.accessibilityIdentifier ?: row.identifier;
     cell.detailTextLabel.text = row.detail;
     cell.imageView.image = row.image;
-    cell.imageView.tintColor = row.imageColor;
+    cell.imageView.tintColor = [WPStyleGuide unselectedColor ];
     if (row.accessoryView) {
         cell.accessoryView = row.accessoryView;
     }
@@ -1070,6 +1070,7 @@ NSString * const WPCalypsoDashboardPath = @"https://wordpress.com/stats/";
             cell.accessoryType = UITableViewCellAccessoryNone;
         }
         [WPStyleGuide configureTableViewCell:cell];
+        cell.textLabel.textColor = [WPStyleGuide textColor];
     }
     if ([[QuickStartTourGuide find] isCurrentElement:row.quickStartIdentifier]) {
         row.accessoryView = [QuickStartSpotlightView new];
