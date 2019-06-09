@@ -23,6 +23,7 @@ extension WPStyleGuide {
             navigationAppearance.barTintColor = .navigationBar
         }
         navigationAppearance.isTranslucent = false
+        navigationAppearance.barStyle = .black
 //        navigationAppearance.tintColor = .white
 //        navigationAppearance.setBackgroundImage(UIImage(color: .navigationBar), for: .default)
 //        navigationAppearance.shadowImage = UIImage(color: .navigationBarShadow)
