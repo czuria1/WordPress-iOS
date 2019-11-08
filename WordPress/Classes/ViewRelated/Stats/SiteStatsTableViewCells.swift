@@ -36,7 +36,7 @@ struct CellHeaderRow: ImmuTableRow {
         return ImmuTableCell.nib(CellType.defaultNib, CellType.self)
     }()
 
-    let title: String
+    let statSection: StatSection
     let action: ImmuTableAction? = nil
 
     func configureCell(_ cell: UITableViewCell) {
@@ -45,7 +45,7 @@ struct CellHeaderRow: ImmuTableRow {
             return
         }
 
-        cell.configure(withTitle: title)
+        cell.configure(statSection: statSection)
     }
 }
 
@@ -67,6 +67,50 @@ struct TableFooterRow: ImmuTableRow {
 
 // MARK: - Insights Rows
 
+struct InsightCellHeaderRow: ImmuTableRow {
+
+    typealias CellType = StatsCellHeader
+
+    static let cell: ImmuTableCell = {
+        return ImmuTableCell.nib(CellType.defaultNib, CellType.self)
+    }()
+
+    let statSection: StatSection
+    weak var siteStatsInsightsDelegate: SiteStatsInsightsDelegate?
+    let action: ImmuTableAction? = nil
+
+    func configureCell(_ cell: UITableViewCell) {
+
+        guard let cell = cell as? CellType else {
+            return
+        }
+
+        cell.configure(statSection: statSection, siteStatsInsightsDelegate: siteStatsInsightsDelegate)
+    }
+}
+
+struct CustomizeInsightsRow: ImmuTableRow {
+
+    typealias CellType = CustomizeInsightsCell
+
+    static let cell: ImmuTableCell = {
+        return ImmuTableCell.nib(CellType.defaultNib, CellType.self)
+    }()
+
+    weak var siteStatsInsightsDelegate: SiteStatsInsightsDelegate?
+    let action: ImmuTableAction? = nil
+
+    func configureCell(_ cell: UITableViewCell) {
+
+        guard let cell = cell as? CellType else {
+            return
+        }
+
+        cell.configure(insightsDelegate: siteStatsInsightsDelegate)
+    }
+
+}
+
 struct LatestPostSummaryRow: ImmuTableRow {
 
     typealias CellType = LatestPostSummaryCell
@@ -87,7 +131,6 @@ struct LatestPostSummaryRow: ImmuTableRow {
         }
 
         cell.configure(withInsightData: summaryData, chartData: chartData, andDelegate: siteStatsInsightsDelegate)
-
     }
 }
 
@@ -191,7 +234,77 @@ struct TwoColumnStatsRow: ImmuTableRow {
     }
 }
 
+// MARK: - Insights Management
+
+struct AddInsightRow: ImmuTableRow {
+
+    typealias CellType = TopTotalsCell
+
+    static let cell: ImmuTableCell = {
+        return ImmuTableCell.nib(CellType.defaultNib, CellType.self)
+    }()
+
+    let dataRow: StatsTotalRowData
+    weak var siteStatsInsightsDelegate: SiteStatsInsightsDelegate?
+    let action: ImmuTableAction? = nil
+
+    func configureCell(_ cell: UITableViewCell) {
+
+        guard let cell = cell as? CellType else {
+            return
+        }
+
+        cell.configure(dataRows: [dataRow], siteStatsInsightsDelegate: siteStatsInsightsDelegate)
+    }
+}
+
+struct AddInsightStatRow: ImmuTableRow {
+    static let cell = ImmuTableCell.class(WPTableViewCellDefault.self)
+
+    let title: String
+    let enabled: Bool
+    let action: ImmuTableAction?
+
+    let enabledHint = NSLocalizedString("Select to add this stat to Insights.", comment: "Accessibility hint for stat available to add to Insights.")
+    let disabledHint = NSLocalizedString("Stat is already displayed in Insights.", comment: "Accessibility hint for stat not available to add to Insights.")
+
+    func configureCell(_ cell: UITableViewCell) {
+        WPStyleGuide.configureTableViewCell(cell)
+
+        cell.textLabel?.text = title
+        cell.textLabel?.font = WPStyleGuide.fontForTextStyle(.body, fontWeight: .regular)
+        cell.textLabel?.adjustsFontForContentSizeCategory = true
+        cell.textLabel?.textColor = enabled ? .text : .textPlaceholder
+        cell.selectionStyle = .none
+
+        cell.accessibilityLabel = title
+        cell.isAccessibilityElement = true
+        cell.accessibilityTraits = enabled ? .button : .notEnabled
+        cell.accessibilityHint = enabled ? enabledHint : disabledHint
+    }
+}
+
 // MARK: - Period Rows
+
+struct PeriodEmptyCellHeaderRow: ImmuTableRow {
+
+    typealias CellType = StatsCellHeader
+
+    static let cell: ImmuTableCell = {
+        return ImmuTableCell.nib(CellType.defaultNib, CellType.self)
+    }()
+
+    let action: ImmuTableAction? = nil
+
+    func configureCell(_ cell: UITableViewCell) {
+
+        guard let cell = cell as? CellType else {
+            return
+        }
+
+        cell.configure()
+    }
+}
 
 struct TopTotalsPeriodStatsRow: ImmuTableRow {
 
@@ -357,7 +470,7 @@ struct PostStatsEmptyCellHeaderRow: ImmuTableRow {
             return
         }
 
-        cell.configure(withTitle: "", adjustHeightForPostStats: true)
+        cell.configure(statSection: .postStatsGraph)
     }
 }
 
@@ -519,5 +632,25 @@ struct DetailSubtitlesTabbedHeaderRow: ImmuTableRow {
                        showTotalCount: showTotalCount,
                        selectedIndex: selectedIndex,
                        forDetails: true)
+    }
+}
+
+struct StatsErrorRow: ImmuTableRow {
+    static let cell: ImmuTableCell = {
+        return ImmuTableCell.nib(StatsStackViewCell.defaultNib, StatsStackViewCell.self)
+    }()
+    let action: ImmuTableAction? = nil
+    let rowStatus: StoreFetchingStatus
+    let statType: StatType
+
+    private let noDataRow = StatsNoDataRow.loadFromNib()
+
+    func configureCell(_ cell: UITableViewCell) {
+        guard let cell = cell as? StatsStackViewCell else {
+            return
+        }
+
+        noDataRow.configure(forType: statType, rowStatus: rowStatus)
+        cell.insert(view: noDataRow)
     }
 }

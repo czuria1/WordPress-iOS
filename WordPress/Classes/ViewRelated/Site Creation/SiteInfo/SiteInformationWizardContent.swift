@@ -61,6 +61,11 @@ final class SiteInformationWizardContent: UIViewController {
         startListeningToKeyboardNotifications()
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        postScreenChangedForVoiceOver()
+    }
+
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         stopListeningToKeyboardNotifications()
@@ -76,7 +81,7 @@ final class SiteInformationWizardContent: UIViewController {
     }
 
     private func setupBackground() {
-        view.backgroundColor = .neutral(shade: .shade5)
+        view.backgroundColor = .listBackground
     }
 
     private func setupTable() {
@@ -92,11 +97,11 @@ final class SiteInformationWizardContent: UIViewController {
     }
 
     private func setupTableBackground() {
-        table.backgroundColor = .neutral(shade: .shade5)
+        table.backgroundColor = .listBackground
     }
 
     private func setupTableSeparator() {
-        table.separatorColor = .neutral(shade: .shade10)
+        table.separatorColor = .divider
     }
 
     private func registerCell() {
@@ -112,7 +117,7 @@ final class SiteInformationWizardContent: UIViewController {
     }
 
     private func setupButtonWrapper() {
-        buttonWrapper.backgroundColor = .neutral(shade: .shade5)
+        buttonWrapper.backgroundColor = .listBackground
     }
 
     private func setupNextButton() {
@@ -145,8 +150,6 @@ final class SiteInformationWizardContent: UIViewController {
         header.setTitle(headerData.title)
         header.setSubtitle(headerData.subtitle)
 
-        header.accessibilityTraits = .header
-
         table.tableHeaderView = header
 
         NSLayoutConstraint.activate([
@@ -162,7 +165,7 @@ final class SiteInformationWizardContent: UIViewController {
         title.translatesAutoresizingMaskIntoConstraints = false
         title.textAlignment = .natural
         title.numberOfLines = 0
-        title.textColor = .neutral(shade: .shade50)
+        title.textColor = .neutral(.shade50)
         title.font = WPStyleGuide.fontForTextStyle(.footnote, fontWeight: .regular)
         title.text = TableStrings.footer
         title.adjustsFontForContentSizeCategory = true
@@ -273,7 +276,7 @@ extension SiteInformationWizardContent: UITableViewDataSource {
             cell.valueTextField.attributedPlaceholder = attributedPlaceholder(text: TableStrings.site)
             cell.valueTextField.delegate = self
             cell.valueTextField.returnKeyType = .next
-            cell.addTopBorder(withColor: .neutral(shade: .shade10))
+            cell.addTopBorder(withColor: .neutral(.shade10))
         }
 
         if Row.tagline.matches(index.row) {
@@ -281,14 +284,18 @@ extension SiteInformationWizardContent: UITableViewDataSource {
             cell.valueTextField.attributedPlaceholder = attributedPlaceholder(text: TableStrings.tagline)
             cell.valueTextField.delegate = self
             cell.valueTextField.returnKeyType = .done
-            cell.addBottomBorder(withColor: .neutral(shade: .shade10))
+            cell.addBottomBorder(withColor: .neutral(.shade10))
         }
 
+        cell.contentView.backgroundColor = .listForeground
+
         cell.nameLabel.font = WPStyleGuide.fontForTextStyle(.body, fontWeight: .regular)
-        cell.nameLabel.textColor = .neutral(shade: .shade70)
+        cell.nameLabel.textColor = .text
+        cell.nameLabel.backgroundColor = .listForeground
 
         cell.valueTextField.font = WPStyleGuide.fontForTextStyle(.body, fontWeight: .regular)
-        cell.valueTextField.textColor = .neutral(shade: .shade60)
+        cell.valueTextField.textColor = .text
+        cell.valueTextField.backgroundColor = .listForeground
 
         if cell.delegate == nil {
             cell.delegate = self
@@ -297,7 +304,7 @@ extension SiteInformationWizardContent: UITableViewDataSource {
 
     private func attributedPlaceholder(text: String) -> NSAttributedString {
         let attributes: [NSAttributedString.Key: Any] = [
-            .foregroundColor: UIColor.neutral(shade: .shade30),
+            .foregroundColor: UIColor.textPlaceholder,
             .font: WPStyleGuide.fontForTextStyle(.body, fontWeight: .regular)
         ]
 
@@ -404,5 +411,13 @@ extension SiteInformationWizardContent {
     private func keyboardWillHide(_ notification: Foundation.Notification) {
         buttonWrapper.clearShadow()
         bottomConstraint.constant = Constants.bottomMargin
+    }
+}
+
+// MARK: - VoiceOver
+
+private extension SiteInformationWizardContent {
+    func postScreenChangedForVoiceOver() {
+        UIAccessibility.post(notification: .screenChanged, argument: table.tableHeaderView)
     }
 }

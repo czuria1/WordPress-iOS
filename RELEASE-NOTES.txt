@@ -1,3 +1,73 @@
+13.7
+-----
+* Block editor: Added option to insert images from "Free Photo Library".
+ 
+13.6
+-----
+* Fixed a bug that was not submiting posts for review
+* Better support for creating or editing posts while offline. Posts can be saved while offline and they will be automatically uploaded (or published) when the device is back online.
+* Support: fix issue where issues could be created via Help Center search without setting a contact email.
+
+* Me view: fix issue where view was blank when logging in with a self-hosted site.
+* Block Editor: Added support for image alignment options.
+ 
+13.5
+-----
+* Block editor: Fix issue when "New Photo Post" shortcut won't add the selected photo to the post.
+* Block editor: Add Link Target (Open in new tab) to Image Block settings.
+* Block editor: DarkMode improvements.
+* Block editor: New block "Media & Text".
+* Block Editor: Fix issue where the block inserter layout wasn't correct after device rotation.
+* Dark Mode: General improvements
+* Stats: each Insight stat now loads independently.
+* Stats: added ability to customize Insights.
+
+13.4.1
+-----
+Post Settings: Fixed a crash with featured image.
+Removed Giphy as a media source due to changes in their SDK.
+ 
+13.4
+-----
+* Sign In With Apple: if the Apple ID has been disconnected from the WordPress app, log out the account.
+* Sign In With Apple: if the Apple ID has been disconnected from the WordPress app, log out the account on app launch.
+* Dark Mode: General improvements
+* Share Extension: Fixed the text view content inset
+
+* Universal links: Pass back to Safari if we can't handle a URL.
+* Sign In With Apple: fixed issue with re-logging in on an existing WP account.
+* Block editor: Fix a bug on iOS 13.0 were tapping on a link opens Safari
+* Block editor: Fix a link editing issue, where trying to add a empty link at the start of another link would remove the existing link.
+ 
+13.3
+-----
+* Block editor: Add rich text styling to video captions
+* Block editor: Blocks that would be replaced are now hidden when add block bottom sheet displays
+* Block editor: Tapping on empty editor area now always inserts new block at end of post
+* Block editor: Fixed a performance issue that caused a freeze in the editor with long text content.
+* Dark Mode: Fixed colors in rich notifications
+* Reader: Fixed issue with links opening while scrolling in reader posts and comments. 
+
+13.2
+-----
+* When Log In is selected, all available options are displayed.
+* Shows an alert instead of showing a new screen for facebook publicize error.
+ 
+13.1
+-----
+* Moved Notification Settings from the Me tab to the Notifications tab.
+* Account Settings: added the ability to change the username.
+* Stats: added File Downloads to period stats.
+* Stats Periods: Fixed an issue that made the Post stats title button unable.
+* Adds a Publish Now action to posts in the posts list.
+* Stats Periods: Fixed a bug that affected the header date when the site and the device timezones were different.
+* My Sites: Fixed a problem where some sites would appear duplicated.
+ 
+* Stats Periods: Fixed an issue that made the Post stats title button unable.
+* Stats Periods: Fixed a bug that affected the header date when the site and the device timezones were different.
+* Adds a Publish Now action to posts in the posts list.
+* My Sites: Fixed a problem where some sites would appear duplicated.
+
 13.0
 -----
 * Stats: now use site timezone instead of device.
@@ -5,6 +75,8 @@
 * Post Stats: date bar no longer goes prior to earliest date available.
 * Block editor: Adding a block from the post title now shows the add block here indicator.
 * Block editor: Deselect post title any time a block is added
+* Block editor: Auto-enabled upon first open of a block post, unless opted out in v12.9.
+* Block editor: You can now enable and disable the block editor on a per-site basis.
 
 12.9
 -----
@@ -65,6 +137,10 @@
 * The app now launches a bit more quickly.
 * Fixed broken images in posts created by the share extension.
 * Deprecated local previews
+
+12.4.1
+------
+* Copy/Paste from post contents to other apps is working again.
 
 12.4
 -----

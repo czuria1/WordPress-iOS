@@ -4,6 +4,7 @@
 NS_ASSUME_NONNULL_BEGIN
 
 @class WPAccount;
+@class RemoteUser;
 
 extern NSString *const WPAccountDefaultWordPressComAccountChangedNotification;
 extern NSNotificationName const WPAccountEmailAndDefaultBlogUpdatedNotification;
@@ -84,18 +85,6 @@ extern NSNotificationName const WPAccountEmailAndDefaultBlogUpdatedNotification;
 ///-----------------------
 
 /**
- A convenience method for creating an Account just from an auth token.
- A temporary username is assigned and is expected to be updated as soon as
- the account is synced from the server.
-
- This method makes a pass through call to `createOrUpdateAccountWithUsername:authToken:`, see it for details.
-
- @param authToken the OAuth2 token returned by signIntoWordPressDotComWithUsername:authToken:
- @return a WordPress.com `WPAccount` object
- */
-- (WPAccount *)createOrUpdateAccountWithAuthToken:(NSString *)authToken;
-
-/**
  Creates a new WordPress.com account or updates the password if there is a matching account
  
  There can only be one WordPress.com account per username, so if one already exists for the given `username` its password is updated
@@ -110,6 +99,13 @@ extern NSNotificationName const WPAccountEmailAndDefaultBlogUpdatedNotification;
                                        authToken:(NSString *)authToken;
 
 - (NSUInteger)numberOfAccounts;
+
+/**
+ Returns all accounts currently existing in core data.
+
+ @return An array of WPAccounts.
+ */
+- (NSArray<WPAccount *> *)allAccounts;
 
 /**
  Returns a WordPress.com account with the specified username, if it exists
@@ -137,6 +133,24 @@ extern NSNotificationName const WPAccountEmailAndDefaultBlogUpdatedNotification;
                             failure:(nullable void (^)(NSError *error))failure;
 
 /**
+ Updates the default blog for the specified account.  The default blog will be the one whose siteID matches
+ the accounts primaryBlogID.
+ */
+- (void)updateDefaultBlogIfNeeded:(WPAccount *)account;
+
+/**
+ Syncs the details for the account associated with the provided auth token, then
+ creates or updates a WPAccount with the synced information.
+
+ @param authToken The auth token associated with the account being created/updated.
+ @param success A success block.
+ @param failure A failure block.
+ */
+- (void)createOrUpdateAccountWithAuthToken:(NSString *)authToken
+                                   success:(void (^)(WPAccount * _Nonnull))success
+                                   failure:(void (^)(NSError * _Nonnull))failure;
+
+/**
  Initializes the WordPress iOS Extensions with the WordPress.com Default Account.
  */
 - (void)setupAppExtensionsWithDefaultAccount;
@@ -146,6 +160,13 @@ extern NSNotificationName const WPAccountEmailAndDefaultBlogUpdatedNotification;
  Removes an account if it's not the default account and there are no associated blogs
  */
 - (void)purgeAccountIfUnused:(WPAccount *)account;
+
+/**
+ Restores a disassociated default WordPress.com account if the current defaultWordPressCom account is nil
+ and another candidate account is found.  This method bypasses the normal setter to avoid triggering unintended
+ side-effects from dispatching account changed notifications.
+ */
+- (void)restoreDisassociatedAccountIfNecessary;
 
 ///--------------------
 /// @name Visible blogs

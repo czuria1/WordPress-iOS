@@ -53,12 +53,17 @@ final class SiteSegmentsWizardContent: UIViewController {
         observeNetworkStatus()
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        postScreenChangedForVoiceOver()
+    }
+
     private func applyTitle() {
         title = NSLocalizedString("Create Site", comment: "Site creation. Step 1. Screen title")
     }
 
     private func setupBackground() {
-        view.backgroundColor = .neutral(shade: .shade5)
+        view.backgroundColor = .listBackground
     }
 
     override func viewDidLayoutSubviews() {
@@ -76,11 +81,11 @@ final class SiteSegmentsWizardContent: UIViewController {
     }
 
     private func setupTableBackground() {
-        table.backgroundColor = .neutral(shade: .shade5)
+        table.backgroundColor = .listBackground
     }
 
     private func setupTableSeparator() {
-        table.separatorColor = .neutral(shade: .shade10)
+        table.separatorColor = .divider
     }
 
     private func hideSeparators() {
@@ -109,8 +114,6 @@ final class SiteSegmentsWizardContent: UIViewController {
         let header = TitleSubtitleHeader(frame: initialHeaderFrame)
         header.setTitle(headerData.title)
         header.setSubtitle(headerData.subtitle)
-
-        header.accessibilityTraits = .header
 
         table.tableHeaderView = header
 
@@ -255,5 +258,9 @@ extension SiteSegmentsWizardContent: Accessible {
 
     private func prepareTableForVoiceOver() {
         table.accessibilityLabel = NSLocalizedString("The kinds of sites that can be created", comment: "Accessibility hint for list")
+    }
+
+    private func postScreenChangedForVoiceOver() {
+        UIAccessibility.post(notification: .screenChanged, argument: table.tableHeaderView)
     }
 }

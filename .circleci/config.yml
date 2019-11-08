@@ -1,37 +1,79 @@
 version: 2.1
 
 orbs:
-  ios: wordpress-mobile/ios@0.0.29
-  slack: circleci/slack@2.5.0
+  # Using 1.0 of the Orbs means it will use the latest 1.0.x version from https://github.com/wordpress-mobile/circleci-orbs
+  ios: wordpress-mobile/ios@1.0
+  git: wordpress-mobile/git@1.0
+
+commands:
+  load-chruby:
+    steps:
+      - run:
+          name: Load chruby
+          command: |
+            # Force chruby to load to work around CircleCI Xcode 11 image issue
+            echo 'source /usr/local/opt/chruby/share/chruby/chruby.sh && chruby 2.5.5' >> $BASH_ENV
+  save-xcresult:
+    steps:
+      - run:
+          name: Zip xcresult
+          command: |
+            mkdir testresults
+            zip -r testresults/xcresult.zip test-without-building.xcresult
+          when: on_fail # Zips the .xcresult file when tests fail, so it can be saved
+      - store_artifacts:
+          name: Save xcresult
+          path: testresults
+          destination: logs
 
 jobs:
-  build-ui-tests:
+  Build Tests:
     executor:
       name: ios/default
-      xcode-version: "10.2.0"
+      xcode-version: "11.0.0"
     steps:
-      - checkout
+      - git/shallow-checkout
+      - load-chruby
       - ios/install-dependencies:
-          bundle-install: true
-          pod-install: true
+            bundle-install: true
+            pod-install: true
       - ios/xcodebuild:
           command: build-for-testing
           arguments: -workspace 'WordPress.xcworkspace' -scheme 'WordPressUITests' -configuration 'Debug' -sdk iphonesimulator -derivedDataPath DerivedData
+      - ios/xcodebuild:
+          command: build-for-testing
+          arguments: -workspace 'WordPress.xcworkspace' -scheme 'WordPress' -configuration 'Debug' -sdk iphonesimulator -derivedDataPath DerivedData
       - persist_to_workspace:
           root: ./
           paths:
             - DerivedData/Build/Products
             - Pods/WordPressMocks
-  run-ui-tests:
+  Unit Tests:
+    executor:
+      name: ios/default
+      xcode-version: "11.0.0"
+    steps:
+      - ios/boot-simulator:
+          xcode-version: "11.0.0"
+          device: iPhone 11
+      - attach_workspace:
+          at: ./
+      - ios/wait-for-simulator
+      - ios/xcodebuild:
+          command: test-without-building
+          arguments: -xctestrun DerivedData/Build/Products/WordPress_iphonesimulator13.0-x86_64.xctestrun -destination "platform=iOS Simulator,id=$SIMULATOR_UDID" -resultBundlePath test-without-building.xcresult
+      - ios/save-xcodebuild-artifacts
+      - save-xcresult
+  UI Tests:
     parameters:
       device:
         type: string
     executor:
       name: ios/default
-      xcode-version: "10.2.0"
+      xcode-version: "11.0.0"
     steps:
       - ios/boot-simulator:
-          xcode-version: "10.2.0"
+          xcode-version: "11.0.0"
           device: << parameters.device >>
       - attach_workspace:
           at: ./
@@ -42,44 +84,58 @@ jobs:
       - ios/wait-for-simulator
       - ios/xcodebuild:
           command: test-without-building
-          arguments: -xctestrun DerivedData/Build/Products/WordPressUITests_iphonesimulator12.2-x86_64.xctestrun -destination "platform=iOS Simulator,id=$SIMULATOR_UDID"
+          arguments: -xctestrun DerivedData/Build/Products/WordPressUITests_iphonesimulator13.0-x86_64.xctestrun -destination "platform=iOS Simulator,id=$SIMULATOR_UDID" -resultBundlePath test-without-building.xcresult
       - ios/save-xcodebuild-artifacts
+      - save-xcresult
+  Installable Build:
+    executor:
+      name: ios/default
+      xcode-version: "11.0.0"
+    steps:
+      - git/shallow-checkout
+      - load-chruby
+      - ios/install-dependencies:
+            bundle-install: true
+            pod-install: true
       - run:
-          name: Prepare Slack message
-          when: always
+          name: Copy Secrets
+          command: bundle exec fastlane run configure_apply
+      - run:
+          name: Build
+          working_directory: Scripts
+          command: "bundle exec fastlane build_and_upload_installable_build build_number:$CIRCLE_BUILD_NUM"
+      - run:
+          name: Prepare Artifacts
           command: |
-            # Get the name of the device that is running. Using "<< parameters.device >>" can cause slack formatting errors.
-            DEVICE_NAME=$(xcrun simctl list -j | jq -r --arg UDID $SIMULATOR_UDID '.devices[] | .[] | select(.udid == "\($UDID)") | .name')
-            echo "export SLACK_FAILURE_MESSAGE=':red_circle: WordPress iOS UI tests have failed on ${DEVICE_NAME}!'" >> $BASH_ENV
-      - slack/status:
-          fail_only: 'true'
-          failure_message: '${SLACK_FAILURE_MESSAGE}'
+            mkdir -p Artifacts
+            mv "Scripts/fastlane/comment.json" "Artifacts/comment.json"
+      - store_artifacts:
+          path: Artifacts
+          destination: Artifacts
 
 workflows:
   wordpress_ios:
     jobs:
-      - ios/test:
-          name: build_and_test
-          xcode-version: "10.2.0"
-          workspace: WordPress.xcworkspace
-          scheme: WordPress
-          device: iPhone XS
-  ui_tests:
-    triggers:
-      - schedule:
-          cron: "0 0 * * *"
+      - Build Tests
+      - Unit Tests:
+          requires: [ "Build Tests" ]
+      - UI Tests:
+          name: UI Tests (iPhone 11)
+          device: iPhone 11
+          requires: [ "Build Tests" ]
+      - UI Tests:
+          name: UI Tests (iPad Air 3rd generation)
+          device: iPad Air \\(3rd generation\\)
+          requires: [ "Build Tests" ]
+  Installable Build:
+    jobs:
+      - Hold:
+          type: approval
           filters:
             branches:
-              only:
-                - develop
-    jobs:
-      - build-ui-tests:
-          name: Build UI Tests
-      - run-ui-tests:
-          name: UI Tests (iPhone Xs)
-          device: iPhone Xs
-          requires: [ "Build UI Tests" ]
-      - run-ui-tests:
-          name: UI Tests (iPad 6th generation)
-          device: iPad \\(6th generation\\)
-          requires: [ "Build UI Tests" ]
+              ignore: /pull\/[0-9]+/
+      - Installable Build:
+          requires: [Hold]  
+          filters:
+            branches:
+              ignore: /pull\/[0-9]+/

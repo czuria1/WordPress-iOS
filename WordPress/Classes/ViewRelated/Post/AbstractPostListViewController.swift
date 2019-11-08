@@ -1,4 +1,5 @@
 import Foundation
+import Gridicons
 import CocoaLumberjack
 import WordPressShared
 import wpxmlrpc
@@ -123,8 +124,10 @@ class AbstractPostListViewController: UIViewController,
     @objc var postListFooterView: PostListFooterView!
 
     @IBOutlet var filterTabBar: FilterTabBar!
-    @IBOutlet var rightBarButtonView: UIView!
-    @IBOutlet var addButton: UIButton!
+
+    @objc lazy var addButton: UIBarButtonItem = {
+        return UIBarButtonItem(image: Gridicon.iconOfType(.plus), style: .plain, target: self, action: #selector(handleAddButtonTapped))
+    }()
 
     @objc var searchController: UISearchController!
     @objc var recentlyTrashedPostObjectIDs = [NSManagedObjectID]() // IDs of trashed posts. Cleared on refresh or when filter changes.
@@ -226,16 +229,11 @@ class AbstractPostListViewController: UIViewController,
         //
         let backButton = UIBarButtonItem(title: "", style: .plain, target: nil, action: nil)
         navigationItem.backBarButtonItem = backButton
-
-        let rightBarButtonItem = UIBarButtonItem(customView: rightBarButtonView)
-        rightBarButtonItem.width = rightBarButtonView.frame.size.width
-        WPStyleGuide.setRightBarButtonItemWithCorrectSpacing(rightBarButtonItem, for: navigationItem)
+        navigationItem.rightBarButtonItem = addButton
     }
 
     func configureFilterBar() {
-        filterTabBar.tintColor = .primary
-        filterTabBar.deselectedTabColor = .neutral(shade: .shade40)
-        filterTabBar.dividerColor = .neutral(shade: .shade10)
+        WPStyleGuide.configureFilterTabBar(filterTabBar)
 
         filterTabBar.items = filterSettings.availablePostListFilters()
 
@@ -371,7 +369,6 @@ class AbstractPostListViewController: UIViewController,
 
     func hideNoResultsView() {
         postListFooterView.isHidden = false
-        rightBarButtonView.isHidden = false
         noResultsViewController.removeFromView()
     }
 
@@ -382,7 +379,6 @@ class AbstractPostListViewController: UIViewController,
         }
 
         postListFooterView.isHidden = true
-        rightBarButtonView.isHidden = true
         refreshNoResultsViewController(noResultsViewController)
 
         // Only add no results view if it isn't already in the table view
@@ -559,7 +555,7 @@ class AbstractPostListViewController: UIViewController,
         WPAnalytics.track(.postListPullToRefresh, withProperties: propertiesForAnalytics())
     }
 
-    @IBAction func handleAddButtonTapped(_ sender: AnyObject) {
+    @objc func handleAddButtonTapped() {
         createPost()
     }
 
@@ -796,7 +792,10 @@ class AbstractPostListViewController: UIViewController,
             return
         }
 
-        tableView.displayGhostContent(options: ghostOptions)
+        let style = GhostStyle(beatDuration: GhostStyle.Defaults.beatDuration,
+                               beatStartColor: .placeholderElement,
+                               beatEndColor: .placeholderElementFaded)
+        tableView.displayGhostContent(options: ghostOptions, style: style)
         tableView.isScrollEnabled = false
         noResultsViewController.view.isHidden = true
     }
@@ -907,33 +906,16 @@ class AbstractPostListViewController: UIViewController,
         alertController.addDefaultActionWithTitle(publishTitle) { [unowned self] _ in
             WPAnalytics.track(.postListPublishAction, withProperties: self.propertiesForAnalytics())
 
-            apost.date_created_gmt = Date()
-            apost.status = .publish
-            self.uploadPost(apost)
-            self.updateFilterWithPostStatus(.publish)
+            PostCoordinator.shared.publish(apost)
         }
 
         present(alertController, animated: true)
     }
 
-    @objc func schedulePost(_ apost: AbstractPost) {
-        WPAnalytics.track(.postListScheduleAction, withProperties: propertiesForAnalytics())
-
-        apost.status = .scheduled
-        uploadPost(apost)
-        updateFilterWithPostStatus(.scheduled)
-    }
-
     @objc func moveToDraft(_ apost: AbstractPost) {
         WPAnalytics.track(.postListDraftAction, withProperties: propertiesForAnalytics())
 
-        apost.status = .draft
-        uploadPost(apost)
-        updateFilterWithPostStatus(.draft)
-    }
-
-    fileprivate func uploadPost(_ apost: AbstractPost) {
-        PostCoordinator.shared.save(post: apost)
+        PostCoordinator.shared.moveToDraft(apost)
     }
 
     @objc func viewPost(_ apost: AbstractPost) {

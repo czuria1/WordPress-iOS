@@ -99,6 +99,7 @@ final class VerticalsWizardContent: UIViewController {
         super.viewDidAppear(animated)
         restoreSearchIfNeeded()
         selectionHandled = false
+        postScreenChangedForVoiceOver()
     }
 
     override func viewDidDisappear(_ animated: Bool) {
@@ -290,7 +291,7 @@ final class VerticalsWizardContent: UIViewController {
     }
 
     private func setupBackground() {
-        view.backgroundColor = .neutral(shade: .shade5)
+        view.backgroundColor = .listBackground
     }
 
     private func setupCellHeight() {
@@ -332,7 +333,7 @@ final class VerticalsWizardContent: UIViewController {
     }
 
     private func setupButtonWrapper() {
-        buttonWrapper.backgroundColor = .neutral(shade: .shade5)
+        buttonWrapper.backgroundColor = .listBackground
     }
 
     private func setupNextButton() {
@@ -361,7 +362,7 @@ final class VerticalsWizardContent: UIViewController {
     }
 
     private func setupTableBackground() {
-        table.backgroundColor = .neutral(shade: .shade5)
+        table.backgroundColor = .listBackground
     }
 
     private func setupTableHeaderWithPrompt(_ prompt: SiteVerticalsPrompt) {
@@ -379,7 +380,7 @@ final class VerticalsWizardContent: UIViewController {
         header.accessibilityTraits = .header
 
         let placeholderText = prompt.hint
-        let attributes = WPStyleGuide.defaultSearchBarTextAttributesSwifted(.neutral(shade: .shade30))
+        let attributes = WPStyleGuide.defaultSearchBarTextAttributesSwifted(.textPlaceholder)
         let attributedPlaceholder = NSAttributedString(string: placeholderText, attributes: attributes)
         header.textField.attributedPlaceholder = attributedPlaceholder
         header.textField.returnKeyType = .done
@@ -407,7 +408,7 @@ final class VerticalsWizardContent: UIViewController {
     }
 
     private func setupTableSeparator() {
-        table.separatorColor = .neutral(shade: .shade10)
+        table.separatorColor = .divider
     }
 
     private func trackVerticalSelection(_ vertical: SiteVertical) {
@@ -514,5 +515,13 @@ extension VerticalsWizardContent {
 
     func preferredContentSizeDidChange() {
         tableViewOffsetCoordinator?.adjustTableOffsetIfNeeded()
+    }
+}
+
+// MARK: - VoiceOver
+
+private extension VerticalsWizardContent {
+    func postScreenChangedForVoiceOver() {
+        UIAccessibility.post(notification: .screenChanged, argument: table.tableHeaderView)
     }
 }

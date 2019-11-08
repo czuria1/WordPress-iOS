@@ -1,6 +1,3 @@
-* Panoramica delle statistiche: controlla i nuovi layout a due colonne per le statistiche su Follower totali, Quest'anno e Ora più popolare.
-* Panoramica di Quest'anno: visualizza un'istantanea dei Mi piace, dei commenti, degli articoli totali e molto altro per l'anno in corso facendo clic sull'opzione Visualizza altro.
-* Periodi delle statistiche: abbiamo aggiunto una mappa del mondo nella sezione dei Paesi.
-* È stato risolto un problema a causa del quale a volte l'aggiornamento comportava la cancellazione delle statistiche.
-* Creala come vuoi! Vai a Io > Impostazioni app > Icona app per scegliere tra una serie di icone di app.
-* È stato aggiornato lo schema colori dell'app.
+- Editor dei blocchi: abbiamo aggiunto un blocco "Media e testo". È stata aggiunta l'opzione Destinazione link (Apri in una nuova scheda) alle impostazioni del blocco Immagine. Abbiamo corretto un bug per cui il comando di scelta rapida "Nuovo articolo fotografico" non aggiungeva la foto selezionata.
+- Statistiche: adesso puoi personalizzare la panoramica. Il caricamento della panoramica nelle reti lenti avviene più velocemente.
+- Dark Mode: sono stati apportati miglioramenti e correzioni di piccoli bug in tutta l'app.

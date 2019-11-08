@@ -29,6 +29,7 @@
 @dynamic postID;
 @dynamic error;
 @dynamic featuredOnPosts;
+@dynamic autoUploadFailureCount;
 
 #pragma mark -
 
@@ -159,7 +160,7 @@
 
 - (void)setRemoteStatus:(MediaRemoteStatus)aStatus
 {
-    [self setRemoteStatusNumber:[NSNumber numberWithInt:aStatus]];
+    [self setRemoteStatusNumber:@(aStatus)];
 }
 
 - (NSString *)remoteStatusText

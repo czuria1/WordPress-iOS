@@ -35,6 +35,7 @@ class ReaderCommentCell: UITableViewCell {
         newTextView.isScrollEnabled = false
         newTextView.isEditable = false
         newTextView.translatesAutoresizingMaskIntoConstraints = false
+        newTextView.backgroundColor = .clear
 
         return newTextView
     }()
@@ -97,7 +98,7 @@ class ReaderCommentCell: UITableViewCell {
         textView.textContainerInset = Constants.textViewInsets
 
         let backgroundView = UIView()
-        backgroundView.backgroundColor = .primary(shade: .shade0)
+        backgroundView.backgroundColor = .listForegroundUnread
         selectedBackgroundView = backgroundView
     }
 
@@ -170,7 +171,7 @@ class ReaderCommentCell: UITableViewCell {
         authorButton.isEnabled = true
         authorButton.setTitle(comment.authorForDisplay(), for: .normal)
         authorButton.setTitleColor(.primaryLight, for: .highlighted)
-        authorButton.setTitleColor(.neutral(shade: .shade60), for: .disabled)
+        authorButton.setTitleColor(.neutral(.shade60), for: .disabled)
 
         if comment.authorIsPostAuthor() {
             authorButton.setTitleColor(.accent, for: .normal)

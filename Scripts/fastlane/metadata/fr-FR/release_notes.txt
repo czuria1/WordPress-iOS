@@ -1,6 +1,3 @@
-- aperçus des statistiques : consultez les nouvelles mises en page en deux colonnes pour les Totaux des abonné·es, Cette année et les statistiques les plus populaires.
-- aperçus de Cette année : visualisez un instantané du total d’articles, de commentaires, de J’aime et plus pour l’année en cours quand vous touchez sur Voir plus d’options.
-- périodes des statistiques : nous avons ajouté une carte du monde dans la section pays.
-- correctif d’un problème du rafraîchissement des statistiques qui effaçait certaines statistiques.
-- Faites comme vous voulez ! Allez sur Moi > Réglages de l’app > Icône de l’app pour choisir parmi une série de d’icônes pour l’app.
-- Rafraichissement de du jeu de couleurs de l’app.
+- Éditeur de blocs : nous avons ajouté un bloc « Texte et média » ! L’option cible du lien (Ouvrir dans un nouvel onglet) a été ajoutée aux réglages du bloc image. Nous avons corrigé un bug où le raccourci « Nouvel article photo » n’ajoutait pas la photo sélectionnée.
+- Statistiques : vous pouvez, à présent, personnaliser les thématiques. Les thématiques se chargent plus rapidement sur les réseaux lents.
+- Mode sombre : Améliorations et corrections de petits bugs dans toute l’application.

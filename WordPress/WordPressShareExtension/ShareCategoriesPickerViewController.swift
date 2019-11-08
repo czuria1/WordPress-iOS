@@ -149,10 +149,6 @@ class ShareCategoriesPickerViewController: UITableViewController {
         return nil
     }
 
-    override func tableView(_ tableView: UITableView, willDisplayHeaderView view: UIView, forSection section: Int) {
-        WPStyleGuide.configureTableViewSectionHeader(view)
-    }
-
     override func tableView(_ tableView: UITableView, titleForFooterInSection section: Int) -> String? {
         return nil
     }
@@ -162,7 +158,10 @@ class ShareCategoriesPickerViewController: UITableViewController {
     }
 
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-        tableView.flashRowAtIndexPath(indexPath, scrollPosition: .none, flashLength: Constants.flashAnimationLength)
+        tableView.flashRowAtIndexPath(indexPath,
+                                      scrollPosition: .none,
+                                      flashLength: Constants.flashAnimationLength,
+                                      completion: nil)
         selectedCategoryTableRowAt(indexPath)
     }
 }

@@ -1,6 +1,3 @@
-* Statistiska insikter: kolla in den nya layouten i två kolumner med statistik över totalt antal följare och uppgifter om innevarande år och populäraste tider.
-* Insikter om innevarande år: tryck på alternativet ”visa mer” för att se en ögonblicksbild över totalt antal inlägg, kommentarer, gillamarkeringar med mera för innevarande år fram till dagens datum.
-* Statistikperioder: Vi har lagt till en världskarta i avsnittet med alla länder.
-* Rättat ett fel som vid omladdning ibland kunde tömma statistiken.
-* Designa själv! Gå till Jag > App-inställningar > App-ikon så kan du välja mellan en rad olika ikoner för appen.
-* Appens färgschema har uppdaterats.
+- Blockredigeraren: Vi har lagt till en blocktyp för ”Media och Text”! Ett alternativ för länkmål (öppna i nytt fönster) har lagts till i inställningarna för bildblock. Vi har rättat ett fel där genvägen ”Nytt inlägg med foto” inte lade till det valda fotot.
+- Statistik: Nu kan du anpassa insikterna. Nu går laddningen av insikterna snabbare om man har långsam uppkoppling.
+- Mörkt läge: Förbättringar och rättningar av småfel i hela appen.

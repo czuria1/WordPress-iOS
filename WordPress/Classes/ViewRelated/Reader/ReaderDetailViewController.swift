@@ -4,6 +4,30 @@ import WordPressShared
 import WordPressUI
 import QuartzCore
 import Gridicons
+import MobileCoreServices
+
+class ReaderPlaceholderAttachment: NSTextAttachment {
+    init() {
+        // Initialize with default image data to prevent placeholder graphics appearing on iOS 13.
+        super.init(data: UIImage(color: .basicBackground).pngData(), ofType: kUTTypePNG as String)
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+    }
+
+    override var accessibilityLabel: String? {
+        get {
+            // Setting isAccessibilityElement to false does not seem to work for this
+            // `NSTextAttachment`. VoiceOver will still dictate “Attachment. PNG. File” which is
+            // really weird. Returning an empty label here so nothing will just be dictated at all.
+            return ""
+        }
+        set {
+            super.accessibilityLabel = newValue
+        }
+    }
+}
 
 open class ReaderDetailViewController: UIViewController, UIViewControllerRestoration {
     @objc static let restorablePostObjectURLhKey: String = "RestorablePostObjectURLKey"
@@ -45,6 +69,7 @@ open class ReaderDetailViewController: UIViewController, UIViewControllerRestora
 
     // Header realated Views
     @IBOutlet fileprivate weak var headerView: UIView!
+    @IBOutlet fileprivate weak var headerViewBackground: UIView!
     @IBOutlet fileprivate weak var blavatarImageView: UIImageView!
     @IBOutlet fileprivate weak var blogNameButton: UIButton!
     @IBOutlet fileprivate weak var blogURLLabel: UILabel!
@@ -72,6 +97,7 @@ open class ReaderDetailViewController: UIViewController, UIViewControllerRestora
     @IBOutlet fileprivate weak var featuredImageBottomPaddingView: UIView!
     @IBOutlet fileprivate weak var titleBottomPaddingView: UIView!
     @IBOutlet fileprivate weak var bylineBottomPaddingView: UIView!
+    @IBOutlet fileprivate weak var footerDivider: UIView!
 
     @objc open var shouldHideComments = false
     fileprivate var didBumpStats = false
@@ -84,9 +110,12 @@ open class ReaderDetailViewController: UIViewController, UIViewControllerRestora
 
     private let readerLinkRouter = UniversalLinkRouter(routes: UniversalLinkRouter.readerRoutes)
 
-    private let topMarginAttachment = NSTextAttachment()
+    private let topMarginAttachment = ReaderPlaceholderAttachment()
 
-    private let bottomMarginAttachment = NSTextAttachment()
+    private let bottomMarginAttachment = ReaderPlaceholderAttachment()
+
+    private var lightTextViewAttributedString: NSAttributedString?
+    private var darkTextViewAttributedString: NSAttributedString?
 
     @objc var currentPreferredStatusBarStyle = UIStatusBarStyle.lightContent {
         didSet {
@@ -285,6 +314,13 @@ open class ReaderDetailViewController: UIViewController, UIViewControllerRestora
         // This is something we do to help with the resizing that can occur with
         // split screen multitasking on the iPad.
         view.layoutIfNeeded()
+
+        if #available(iOS 13.0, *) {
+            if previousTraitCollection?.hasDifferentColorAppearance(comparedTo: traitCollection) == true {
+                reloadGradientColors()
+                updateRichText()
+            }
+        }
     }
 
 
@@ -503,6 +539,32 @@ open class ReaderDetailViewController: UIViewController, UIViewControllerRestora
         WPStyleGuide.applyReaderCardActionButtonStyle(commentButton)
         WPStyleGuide.applyReaderCardActionButtonStyle(likeButton)
         WPStyleGuide.applyReaderCardActionButtonStyle(saveForLaterButton)
+
+        view.backgroundColor = .listBackground
+
+        titleLabel.backgroundColor = .basicBackground
+        titleBottomPaddingView.backgroundColor = .basicBackground
+        bylineView.backgroundColor = .basicBackground
+        bylineBottomPaddingView.backgroundColor = .basicBackground
+
+        headerView.backgroundColor = .listForeground
+        footerView.backgroundColor = .listForeground
+        footerDivider.backgroundColor = .divider
+
+        if #available(iOS 13.0, *) {
+            if traitCollection.userInterfaceStyle == .dark {
+                attributionView.backgroundColor = .listBackground
+            }
+        }
+
+        reloadGradientColors()
+    }
+
+    fileprivate func reloadGradientColors() {
+        bylineGradientViews.forEach({ view in
+            view.fromColor = .basicBackground
+            view.toColor = UIColor.basicBackground.withAlphaComponent(0.0)
+        })
     }
 
 
@@ -514,6 +576,7 @@ open class ReaderDetailViewController: UIViewController, UIViewControllerRestora
         configureFeaturedImage()
         configureTitle()
         configureByLine()
+        configureAttributedString()
         configureRichText()
         configureDiscoverAttribution()
         configureTag()
@@ -718,22 +781,45 @@ open class ReaderDetailViewController: UIViewController, UIViewControllerRestora
         guard let post = post else {
             return
         }
+
         textView.isPrivate = post.isPrivate()
         textView.content = post.contentForDisplay()
 
-        // TODO: Get attributed string
-        // Modify the attributed string. Add top and bottom embeds
-        // Ensure formatting for embeds.
-        // Assign attributed string to textView.
-        // Besure that embed bounds are updated.
-        let attrStr = WPRichContentView.formattedAttributedStringForString(post.contentForDisplay())
-        let mAttrStr = NSMutableAttributedString(attributedString: attrStr)
+        updateRichText()
+        updateTextViewMargins()
+    }
+
+    private func updateRichText() {
+        guard let post = post else {
+            return
+        }
+
+        if #available(iOS 13, *) {
+            let isDark = traitCollection.userInterfaceStyle == .dark
+            textView.attributedText = isDark ? darkTextViewAttributedString : lightTextViewAttributedString
+        } else {
+            let attrStr = WPRichContentView.formattedAttributedStringForString(post.contentForDisplay())
+            textView.attributedText = attributedString(with: attrStr)
+        }
+    }
+
+    private func configureAttributedString() {
+        if #available(iOS 13, *), let post = post {
+            let light = WPRichContentView.formattedAttributedString(for: post.contentForDisplay(), style: .light)
+            let dark = WPRichContentView.formattedAttributedString(for: post.contentForDisplay(), style: .dark)
+            lightTextViewAttributedString = attributedString(with: light)
+            darkTextViewAttributedString = attributedString(with: dark)
+        }
+    }
+
+    private func attributedString(with attributedString: NSAttributedString) -> NSAttributedString {
+        let mAttrStr = NSMutableAttributedString(attributedString: attributedString)
 
         // Ensure the starting paragraph style is applied to the topMarginAttachment else the
         // first paragraph might not have the correct line height.
         var paraStyle = NSParagraphStyle.default
-        if attrStr.length > 0 {
-            if let pstyle = attrStr.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle {
+        if attributedString.length > 0 {
+            if let pstyle = attributedString.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle {
                 paraStyle = pstyle
             }
         }
@@ -742,11 +828,8 @@ open class ReaderDetailViewController: UIViewController, UIViewControllerRestora
         mAttrStr.addAttributes([.paragraphStyle: paraStyle], range: NSRange(location: 0, length: 1))
         mAttrStr.append(NSAttributedString(attachment: bottomMarginAttachment))
 
-        textView.attributedText = mAttrStr
-
-        updateTextViewMargins()
+        return mAttrStr
     }
-
 
     fileprivate func configureDiscoverAttribution() {
         if post?.sourceAttributionStyle() == SourceAttributionStyle.none {
@@ -858,7 +941,7 @@ open class ReaderDetailViewController: UIViewController, UIViewControllerRestora
         if likeButton.isSelected {
             // Prep a mask to hide the likeButton's image, since changes to visiblility and alpha are ignored
             let mask = UIView(frame: frame)
-            mask.backgroundColor = view.backgroundColor
+            mask.backgroundColor = footerView.backgroundColor
             likeButton.addSubview(mask)
             likeButton.bringSubviewToFront(imageView)
 
@@ -1323,12 +1406,6 @@ extension ReaderDetailViewController: WPRichContentViewDelegate {
             let frame = textView.frameForTextInRange(characterRange)
             let shareController = PostSharingController()
             shareController.shareURL(url: URL as NSURL, fromRect: frame, inView: textView, inViewController: self)
-        } else if readerLinkRouter.canHandle(url: URL) {
-            readerLinkRouter.handle(url: URL, shouldTrack: false, source: self)
-        } else if URL.isWordPressDotComPost {
-            presentReaderDetailViewControllerWithURL(URL)
-        } else {
-            presentWebViewControllerWithURL(URL)
         }
         return false
     }
@@ -1347,6 +1424,16 @@ extension ReaderDetailViewController: WPRichContentViewDelegate {
             presentWebViewControllerWithURL(linkURL as URL)
         } else if let staticImage = image.imageView.image {
             presentFullScreenImage(with: staticImage)
+        }
+    }
+
+    func interactWith(URL: URL) {
+        if readerLinkRouter.canHandle(url: URL) {
+            readerLinkRouter.handle(url: URL, shouldTrack: false, source: self)
+        } else if URL.isWordPressDotComPost {
+            presentReaderDetailViewControllerWithURL(URL)
+        } else {
+            presentWebViewControllerWithURL(URL)
         }
     }
 }
@@ -1434,7 +1521,8 @@ extension ReaderDetailViewController: Accessible {
             return
         }
         blogNameButton.isAccessibilityElement = true
-        blogNameButton.accessibilityTraits = UIAccessibilityTraits.staticText
+        blogNameButton.accessibilityTraits = [.staticText, .button]
+        blogNameButton.accessibilityHint = NSLocalizedString("Shows the site's posts.", comment: "Accessibility hint for the site name and URL button on Reader's Post Details.")
         if let label = blogNameLabel(post) {
             blogNameButton.accessibilityLabel = label
         }
@@ -1442,17 +1530,18 @@ extension ReaderDetailViewController: Accessible {
 
     private func blogNameLabel(_ post: ReaderPost) -> String? {
         guard let postedIn = post.blogNameForDisplay(),
-            let postedBy = post.authorDisplayName else {
+            let postedBy = post.authorDisplayName,
+            let postedAtURL = post.siteURLForDisplay()?.components(separatedBy: "//").last else {
                 return nil
         }
 
         guard let postedOn = post.dateCreated?.mediumString() else {
-            let format = NSLocalizedString("Posted in %@, by %@.", comment: "Accessibility label for the blog name in the Reader's post details, without date. Placeholders are blog title, author name")
-            return String(format: format, postedIn, postedBy)
+            let format = NSLocalizedString("Posted in %@, at %@, by %@.", comment: "Accessibility label for the blog name in the Reader's post details, without date. Placeholders are blog title, blog URL, author name")
+            return String(format: format, postedIn, postedAtURL, postedBy)
         }
 
-        let format = NSLocalizedString("Posted in %@, by %@, %@", comment: "Accessibility label for the blog name in the Reader's post details. Placeholders are blog title, author name, published date")
-        return String(format: format, postedIn, postedBy, postedOn)
+        let format = NSLocalizedString("Posted in %@, at %@, by %@, %@", comment: "Accessibility label for the blog name in the Reader's post details. Placeholders are blog title, blog URL, author name, published date")
+        return String(format: format, postedIn, postedAtURL, postedBy, postedOn)
     }
 
     private func prepareContentForVoiceOver() {

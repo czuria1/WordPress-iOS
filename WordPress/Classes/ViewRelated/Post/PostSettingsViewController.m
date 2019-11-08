@@ -487,11 +487,6 @@ FeaturedImageViewControllerDelegate>
     return nil;
 }
 
-- (void)tableView:(UITableView *)tableView willDisplayHeaderView:(UIView *)view forSection:(NSInteger)section
-{
-    [WPStyleGuide configureTableViewSectionHeader:view];
-}
-
 - (CGFloat)tableView:(UITableView *)tableView heightForHeaderInSection:(NSInteger)section
 {
     if ([self tableView:tableView numberOfRowsInSection:section] == 0) {
@@ -578,8 +573,12 @@ FeaturedImageViewControllerDelegate>
     } else if (cell.tag == PostSettingsRowTags) {
         [self showTagsPicker];
     } else if (cell.tag == PostSettingsRowPublishDate && !self.datePicker) {
-        [self configureAndShowDatePicker];
-    } else if (cell.tag ==  PostSettingsRowStatus) {
+        if ([Feature enabled:FeatureFlagPostScheduling]) {
+            [self showPublishSchedulingController];
+        } else {
+            [self configureAndShowDatePicker];
+        }
+    } else if (cell.tag == PostSettingsRowStatus) {
         [self showPostStatusSelector];
     } else if (cell.tag == PostSettingsRowVisibility) {
         [self showPostVisibilitySelector];
@@ -1056,6 +1055,12 @@ FeaturedImageViewControllerDelegate>
     NSUInteger sec = [self.sections indexOfObject:[NSNumber numberWithInteger:PostSettingsSectionMeta]];
     NSIndexPath *indexPath = [NSIndexPath indexPathForRow:RowIndexForDatePicker inSection:sec];
     [self.tableView reloadRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationFade];
+}
+
+- (void)showPublishSchedulingController
+{
+    ImmuTableViewController *vc = [PublishSettingsController viewControllerWithPost:self.apost];
+    [self.navigationController pushViewController:vc animated:YES];
 }
 
 - (void)showPostStatusSelector

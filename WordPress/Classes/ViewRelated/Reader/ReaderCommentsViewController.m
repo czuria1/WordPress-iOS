@@ -126,7 +126,7 @@ static NSString *RestorablePostObjectIDURLKey = @"RestorablePostObjectIDURLKey";
 - (void)viewDidLoad
 {
     [super viewDidLoad];
-    self.view.backgroundColor = [UIColor whiteColor];
+    self.view.backgroundColor = [UIColor murielBasicBackground];
 
     [self checkIfLoggedIn];
 
@@ -275,7 +275,6 @@ static NSString *RestorablePostObjectIDURLKey = @"RestorablePostObjectIDURLKey";
         [weakSelf handleHeaderTapped];
     };
     headerView.translatesAutoresizingMaskIntoConstraints = NO;
-    headerView.backgroundColor = [UIColor whiteColor];
     headerView.showsDisclosureIndicator = self.allowsPushingPostDetails;
     [headerView setSubtitle:NSLocalizedString(@"Comments on", @"Sentence fragment. The full phrase is 'Comments on' followed by the title of a post on a separate line.")];
     [headerWrapper addSubview:headerView];
@@ -314,7 +313,7 @@ static NSString *RestorablePostObjectIDURLKey = @"RestorablePostObjectIDURLKey";
     self.tableView.translatesAutoresizingMaskIntoConstraints = NO;
     self.tableView.cellLayoutMarginsFollowReadableWidth = YES;
     self.tableView.preservesSuperviewLayoutMargins = YES;
-    self.tableView.backgroundColor = [UIColor whiteColor];
+    self.tableView.backgroundColor = [UIColor murielBasicBackground];
     [self.view addSubview:self.tableView];
 
     UINib *commentNib = [UINib nibWithNibName:@"ReaderCommentCell" bundle:nil];
@@ -1096,7 +1095,6 @@ static NSString *RestorablePostObjectIDURLKey = @"RestorablePostObjectIDURLKey";
 
 - (BOOL)textView:(UITextView *)textView shouldInteractWithURL:(NSURL *)URL inRange:(NSRange)characterRange interaction:(UITextItemInteraction)interaction
 {
-    [self presentWebViewControllerWithURL:URL];
     return NO;
 }
 
@@ -1122,6 +1120,10 @@ static NSString *RestorablePostObjectIDURLKey = @"RestorablePostObjectIDURLKey";
         [self presentViewController:controller animated:YES completion:nil];
     }
 }
+
+- (void)interactWithURL:(NSURL *) URL {
+      [self presentWebViewControllerWithURL:URL];
+  }
 
 - (BOOL)richContentViewShouldUpdateLayoutForAttachments:(WPRichContentView *)richContentView
 {

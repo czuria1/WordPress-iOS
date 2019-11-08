@@ -4,43 +4,161 @@ import WordPressFlux
 
 class PostCoordinator: NSObject {
 
+    enum SavingError: Error {
+        case mediaFailure(AbstractPost)
+        case unknown
+    }
+
     @objc static let shared = PostCoordinator()
 
-    private(set) var backgroundContext: NSManagedObjectContext = {
-        let context = ContextManager.sharedInstance().newDerivedContext()
-        context.automaticallyMergesChangesFromParent = true
-        return context
-    }()
+    private let backgroundContext: NSManagedObjectContext
 
-    private let mainContext = ContextManager.sharedInstance().mainContext
+    private let mainContext: NSManagedObjectContext
 
     private let queue = DispatchQueue(label: "org.wordpress.postcoordinator")
 
     private var observerUUIDs: [AbstractPost: UUID] = [:]
 
-    private lazy var mediaCoordinator: MediaCoordinator = {
-        return MediaCoordinator.shared
-    }()
+    private let mediaCoordinator: MediaCoordinator
 
-    /// Saves the post to both the local database and the server if available.
-    /// If media is still uploading it keeps track of the ongoing media operations and updates the post content when they finish
+    private let backgroundService: PostService
+    private let mainService: PostService
+    private let failedPostsFetcher: FailedPostsFetcher
+
+    private let actionDispatcherFacade: ActionDispatcherFacade
+
+    // MARK: - Initializers
+
+    init(mainService: PostService? = nil,
+         backgroundService: PostService? = nil,
+         mediaCoordinator: MediaCoordinator? = nil,
+         failedPostsFetcher: FailedPostsFetcher? = nil,
+         actionDispatcherFacade: ActionDispatcherFacade = ActionDispatcherFacade()) {
+        let contextManager = ContextManager.sharedInstance()
+
+        let mainContext = contextManager.mainContext
+        let backgroundContext = contextManager.newDerivedContext()
+        backgroundContext.automaticallyMergesChangesFromParent = true
+
+        self.mainContext = mainContext
+        self.backgroundContext = backgroundContext
+
+        self.mainService = mainService ?? PostService(managedObjectContext: mainContext)
+        self.backgroundService = backgroundService ?? PostService(managedObjectContext: backgroundContext)
+        self.mediaCoordinator = mediaCoordinator ?? MediaCoordinator.shared
+        self.failedPostsFetcher = failedPostsFetcher ?? FailedPostsFetcher(mainContext)
+
+        self.actionDispatcherFacade = actionDispatcherFacade
+    }
+
+    /// Upload or update a post in the server.
+    ///
+    /// - Parameter forceDraftIfCreating Please see `PostService.uploadPost:forceDraftIfCreating`.
+    func save(_ postToSave: AbstractPost,
+              automatedRetry: Bool = false,
+              forceDraftIfCreating: Bool = false,
+              defaultFailureNotice: Notice? = nil,
+              completion: ((Result<AbstractPost>) -> ())? = nil) {
+
+        prepareToSave(postToSave, automatedRetry: automatedRetry) { result in
+            switch result {
+            case .success(let post):
+                self.upload(post: post, forceDraftIfCreating: forceDraftIfCreating, completion: completion)
+            case .error(let error):
+                switch error {
+                case SavingError.mediaFailure(let savedPost):
+                    self.dispatchNotice(savedPost)
+                default:
+                    if let notice = defaultFailureNotice {
+                        self.actionDispatcherFacade.dispatch(NoticeAction.post(notice))
+                    }
+                }
+
+                completion?(.error(error))
+            }
+        }
+    }
+
+    func autoSave(_ postToSave: AbstractPost, automatedRetry: Bool = false) {
+        prepareToSave(postToSave, automatedRetry: automatedRetry) { result in
+            switch result {
+            case .success(let post):
+                self.mainService.autoSave(post, success: { uploadedPost, _ in }, failure: { _ in })
+            case .error:
+                break
+            }
+        }
+    }
+
+    func publish(_ post: AbstractPost) {
+        if post.status == .draft {
+            post.status = .publish
+        }
+
+        if post.status != .scheduled {
+            post.date_created_gmt = Date()
+        }
+
+        post.shouldAttemptAutoUpload = true
+
+        save(post)
+    }
+
+    func moveToDraft(_ post: AbstractPost) {
+        post.status = .draft
+        save(post)
+    }
+
+    /// If media is still uploading it keeps track of the ongoing media operations and updates the post content when they finish.
+    /// Then, it calls the completion block with the post ready to be saved/uploaded.
     ///
     /// - Parameter post: the post to save
-    func save(post postToSave: AbstractPost) {
+    /// - Parameter automatedRetry: if this is an automated retry, without user intervenction
+    /// - Parameter then: a block to perform after post is ready to be saved
+    ///
+    private func prepareToSave(_ postToSave: AbstractPost, automatedRetry: Bool = false,
+                               then completion: @escaping (Result<AbstractPost>) -> ()) {
         var post = postToSave
+
         if postToSave.isRevision() && !postToSave.hasRemote(), let originalPost = postToSave.original {
             post = originalPost
             post.applyRevision()
             post.deleteRevision()
         }
 
+        post.autoUploadAttemptsCount = NSNumber(value: automatedRetry ? post.autoUploadAttemptsCount.intValue + 1 : 0)
+
+        guard mediaCoordinator.uploadMedia(for: post, automatedRetry: automatedRetry) else {
+            change(post: post, status: .failed) { savedPost in
+                completion(.error(SavingError.mediaFailure(savedPost)))
+            }
+            return
+        }
+
         change(post: post, status: .pushing)
 
-        if mediaCoordinator.isUploadingMedia(for: post) {
+        if mediaCoordinator.isUploadingMedia(for: post) || post.hasFailedMedia {
             change(post: post, status: .pushingMedia)
             // Only observe if we're not already
             guard !isObserving(post: post) else {
                 return
+            }
+
+            let handleSingleMediaFailure = { [weak self] in
+                guard let `self` = self,
+                    self.isObserving(post: post) else {
+                    return
+                }
+
+                // One of the media attached to the post has already failed. We're changing the
+                // status of the post to .failed so we don't need to observe for other failed media
+                // anymore. If we do, we'll receive more notifications and we'll be calling
+                // completion() multiple times.
+                self.removeObserver(for: post)
+
+                self.change(post: post, status: .failed) { savedPost in
+                    completion(.error(SavingError.mediaFailure(savedPost)))
+                }
             }
 
             let uuid = mediaCoordinator.addObserver({ [weak self](media, state) in
@@ -54,15 +172,15 @@ class PostCoordinator: NSObject {
                         // Let's check if media uploading is still going, if all finished with success then we can upload the post
                         if !self.mediaCoordinator.isUploadingMedia(for: post) && !post.hasFailedMedia {
                             self.removeObserver(for: post)
-                            self.upload(post: post)
+                            completion(.success(post))
                         }
                     }
                     switch media.mediaType {
                     case .video:
-                        EditorMediaUtility.fetchRemoteVideoURL(for: media, in: post) { [weak self] (result) in
+                        EditorMediaUtility.fetchRemoteVideoURL(for: media, in: post) { (result) in
                             switch result {
                             case .error:
-                                self?.change(post: post, status: .failed)
+                                handleSingleMediaFailure()
                             case .success(let value):
                                 media.remoteURL = value.videoURL.absoluteString
                                 successHandler()
@@ -72,16 +190,18 @@ class PostCoordinator: NSObject {
                         successHandler()
                     }
                 case .failed:
-                    self.change(post: post, status: .failed)
+                    handleSingleMediaFailure()
                 default:
                     DDLogInfo("Post Coordinator -> Media state: \(state)")
                 }
             }, forMediaFor: post)
+
             trackObserver(receipt: uuid, for: post)
+
             return
         }
 
-        upload(post: post)
+        completion(.success(post))
     }
 
     func cancelAnyPendingSaveOf(post: AbstractPost) {
@@ -142,40 +262,27 @@ class PostCoordinator: NSObject {
         return post.titleForDisplay()
     }
 
-    /// Retries the upload and save of the post and any associated media with it.
-    ///
-    /// - Parameter post: the post to retry the upload
-    ///
-    @objc func retrySave(of post: AbstractPost) {
-        for media in post.media {
-            guard media.remoteStatus == .failed else {
-                continue
-            }
-            mediaCoordinator.retryMedia(media)
-        }
-        save(post: post)
-    }
-
     /// This method checks the status of all post objects and updates them to the correct status if needed.
     /// The main cause of wrong status is the app being killed while uploads of posts are happening.
     ///
     @objc func refreshPostStatus() {
-        let service = PostService(managedObjectContext: backgroundContext)
-        service.refreshPostStatus()
+        backgroundService.refreshPostStatus()
     }
 
-    private func upload(post: AbstractPost) {
-        let postService = PostService(managedObjectContext: mainContext)
-        postService.uploadPost(post, success: { uploadedPost in
+    private func upload(post: AbstractPost, forceDraftIfCreating: Bool, completion: ((Result<AbstractPost>) -> ())? = nil) {
+        mainService.uploadPost(post, forceDraftIfCreating: forceDraftIfCreating, success: { [weak self] uploadedPost in
             print("Post Coordinator -> upload succesfull: \(String(describing: uploadedPost.content))")
 
             SearchManager.shared.indexItem(uploadedPost)
 
             let model = PostNoticeViewModel(post: uploadedPost)
-            ActionDispatcher.dispatch(NoticeAction.post(model.notice))
-        }, failure: { error in
-            let model = PostNoticeViewModel(post: post)
-            ActionDispatcher.dispatch(NoticeAction.post(model.notice))
+            self?.actionDispatcherFacade.dispatch(NoticeAction.post(model.notice))
+
+            completion?(.success(uploadedPost))
+        }, failure: { [weak self] error in
+            self?.dispatchNotice(post)
+
+            completion?(.error(error ?? SavingError.unknown))
 
             print("Post Coordinator -> upload error: \(String(describing: error))")
         })
@@ -238,24 +345,107 @@ class PostCoordinator: NSObject {
         return result
     }
 
-    private func change(post: AbstractPost, status: AbstractPostRemoteStatus) {
-        post.managedObjectContext?.perform {
-            post.remoteStatus = status
-            try? post.managedObjectContext?.save()
+    private func change(post: AbstractPost, status: AbstractPostRemoteStatus, then completion: ((AbstractPost) -> ())? = nil) {
+        guard let context = post.managedObjectContext else {
+            return
+        }
+
+        context.perform {
+            if status == .failed {
+                self.mainService.markAsFailedAndDraftIfNeeded(post: post)
+            } else {
+                post.remoteStatus = status
+            }
+
+            ContextManager.sharedInstance().saveContextAndWait(context)
+
+            completion?(post)
+        }
+    }
+
+    /// Cancel active and pending automatic uploads of the post.
+    func cancelAutoUploadOf(_ post: AbstractPost) {
+        cancelAnyPendingSaveOf(post: post)
+
+        post.shouldAttemptAutoUpload = false
+
+        let moc = post.managedObjectContext
+
+        moc?.perform {
+            try? moc?.save()
+        }
+
+        let notice = Notice(title: PostAutoUploadMessages.cancelMessage(for: post.status), message: "")
+        actionDispatcherFacade.dispatch(NoticeAction.post(notice))
+    }
+
+    private func dispatchNotice(_ post: AbstractPost) {
+        DispatchQueue.main.async {
+            let model = PostNoticeViewModel(post: post)
+            self.actionDispatcherFacade.dispatch(NoticeAction.post(model.notice))
         }
     }
 }
 
+// MARK: - Automatic Uploads
+
 extension PostCoordinator: Uploader {
     func resume() {
-        let service = PostService(managedObjectContext: mainContext)
-
-        service.getFailedPosts { [weak self] posts in
+        failedPostsFetcher.postsAndRetryActions { [weak self] postsAndActions in
             guard let self = self else {
                 return
             }
 
-            posts.forEach() { self.retrySave(of: $0 ) }
+            postsAndActions.forEach { post, action in
+                self.trackAutoUpload(action: action, status: post.status)
+
+                switch action {
+                case .upload:
+                    self.save(post, automatedRetry: true)
+                case .autoSave:
+                    self.autoSave(post, automatedRetry: true)
+                case .uploadAsDraft:
+                    self.save(post, automatedRetry: true, forceDraftIfCreating: true)
+                case .nothing:
+                    return
+                }
+            }
+        }
+    }
+
+    private func trackAutoUpload(action: PostAutoUploadInteractor.AutoUploadAction, status: BasePost.Status?) {
+        guard action != .nothing, let status = status else {
+            return
+        }
+        WPAnalytics.track(.autoUploadPostInvoked, withProperties:
+            ["upload_action": action.rawValue,
+             "post_status": status.rawValue])
+    }
+}
+
+extension PostCoordinator {
+    /// Fetches failed posts that should be retried when there is an internet connection.
+    class FailedPostsFetcher {
+        private let postService: PostService
+
+        init(_ postService: PostService) {
+            self.postService = postService
+        }
+
+        init(_ managedObjectContext: NSManagedObjectContext) {
+            postService = PostService(managedObjectContext: managedObjectContext)
+        }
+
+        func postsAndRetryActions(result: @escaping ([AbstractPost: PostAutoUploadInteractor.AutoUploadAction]) -> Void) {
+            let interactor = PostAutoUploadInteractor()
+
+            postService.getFailedPosts { posts in
+                let postsAndActions = posts.reduce(into: [AbstractPost: PostAutoUploadInteractor.AutoUploadAction]()) { result, post in
+                    result[post] = interactor.autoUploadAction(for: post)
+                }
+
+                result(postsAndActions)
+            }
         }
     }
 }

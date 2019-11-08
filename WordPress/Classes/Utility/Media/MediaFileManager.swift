@@ -165,7 +165,7 @@ class MediaFileManager: NSObject {
     ///   was being created or when a CoreData migration fails and the database is recreated.
     ///
     @objc func clearUnusedFilesFromDirectory(onCompletion: (() -> Void)?, onError: ((Error) -> Void)?) {
-        purgeMediaFiles(exceptMedia: NSPredicate(format: "blog != NULL || remoteURL == NULL"),
+        purgeMediaFiles(exceptMedia: NSPredicate(format: "blog != NULL && remoteURL == NULL"),
                         onCompletion: onCompletion,
                         onError: onError)
     }
@@ -189,18 +189,25 @@ class MediaFileManager: NSObject {
         MediaFileManager.default.clearUnusedFilesFromDirectory(onCompletion: onCompletion, onError: onError)
     }
 
-    /// Helper method for calculating the size of the Media cache directory.
+    /// Helper method for calculating the size of the Media directories.
     ///
-    class func calculateSizeOfMediaCacheDirectory(onCompletion: @escaping (Int64?) -> Void) {
+    class func calculateSizeOfMediaDirectories(onCompletion: @escaping (Int64?) -> Void) {
         let cacheManager = MediaFileManager(directory: .cache)
-        cacheManager.calculateSizeOfDirectory(onCompletion: onCompletion)
+        cacheManager.calculateSizeOfDirectory { (cacheSize) in
+            let defaultManager = MediaFileManager.default
+            defaultManager.calculateSizeOfDirectory { (mediaSize) in
+                onCompletion( (mediaSize ?? 0) + (cacheSize ?? 0) )
+            }
+        }
     }
 
     /// Helper method for clearing the Media cache directory.
     ///
     @objc class func clearAllMediaCacheFiles(onCompletion: (() -> Void)?, onError: ((Error) -> Void)?) {
         let cacheManager = MediaFileManager(directory: .cache)
-        cacheManager.clearFilesFromDirectory(onCompletion: onCompletion, onError: onError)
+        cacheManager.clearFilesFromDirectory(onCompletion: {
+            MediaFileManager.clearUnusedMediaUploadFiles(onCompletion: onCompletion, onError: onError)
+        }, onError: onError)
     }
 
     /// Helper method for getting the default upload directory URL.

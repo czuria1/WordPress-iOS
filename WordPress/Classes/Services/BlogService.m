@@ -277,7 +277,8 @@ CGFloat const OneHourInSeconds = 60.0 * 60.0;
 
     PlanService *planService = [[PlanService alloc] initWithManagedObjectContext:self.managedObjectContext];
     dispatch_group_enter(syncGroup);
-    [planService getWpcomPlans:^{
+    [planService getWpcomPlans:blog.account
+                       success:^{
         dispatch_group_leave(syncGroup);
     } failure:^(NSError *error) {
         DDLogError(@"Failed updating plans: %@", error);
@@ -291,6 +292,16 @@ CGFloat const OneHourInSeconds = 60.0 * 60.0;
         DDLogError(@"Failed checking domain credit for site %@: %@", blog.url, error);
         dispatch_group_leave(syncGroup);
     }];
+
+    EditorSettingsService *editorService = [[EditorSettingsService alloc] initWithManagedObjectContext:self.managedObjectContext];
+    dispatch_group_enter(syncGroup);
+    [editorService syncEditorSettingsForBlog:blog success:^{
+        dispatch_group_leave(syncGroup);
+    } failure:^(NSError * _Nonnull error) {
+        DDLogError(@"Failed to sync Editor settings");
+        dispatch_group_leave(syncGroup);
+    }];
+
 
     // When everything has left the syncGroup (all calls have ended with success
     // or failure) perform the completionHandler
@@ -494,7 +505,7 @@ CGFloat const OneHourInSeconds = 60.0 * 60.0;
     return [self blogsWithPredicate:predicate];
 }
 
-- (NSArray *)blogsForAllAccounts
+- (NSArray<Blog *> *)blogsForAllAccounts
 {
     return [self blogsWithPredicate:nil];
 }
@@ -660,7 +671,22 @@ CGFloat const OneHourInSeconds = 60.0 * 60.0;
         [self updateBlogWithRemoteBlog:remoteBlog account:account];
     }
 
+    /*
+     Sometimes bad things happen and blogs get duplicated. 👭
+     Hopefully we'll fix all the causes and this should never happen again 🤞🤞🤞
+     But even if it never happens again, it has already happened so we need to clean up. 🧹
+     Otherwise, users would have to reinstall the app to get rid of duplicates 🙅‍♀️
+
+     More context here:
+     https://github.com/wordpress-mobile/WordPress-iOS/issues/7886#issuecomment-524221031
+     */
+    [self deduplicateBlogsForAccount:account];
+
     [[ContextManager sharedInstance] saveContext:self.managedObjectContext];
+
+    // Ensure that the account has a default blog defined (if there is one).
+    AccountService *service = [[AccountService alloc]initWithManagedObjectContext:self.managedObjectContext];
+    [service updateDefaultBlogIfNeeded:account];
 
     if (completion != nil) {
         dispatch_async(dispatch_get_main_queue(), completion);

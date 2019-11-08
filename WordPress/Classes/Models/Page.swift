@@ -56,10 +56,9 @@ class Page: AbstractPost {
         }
     }
 
-    override func featuredImageURLForDisplay() -> URL? {
-        guard let path = pathForDisplayImage else {
-            return nil
-        }
-        return URL(string: path)
+    override func additionalContentHashes() -> [Data] {
+        return [
+            hash(for: parentID?.intValue ?? 0)
+        ]
     }
 }

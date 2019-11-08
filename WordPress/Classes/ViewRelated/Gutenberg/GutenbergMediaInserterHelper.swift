@@ -4,13 +4,9 @@ import WPMediaPicker
 import Gutenberg
 
 class GutenbergMediaInserterHelper: NSObject {
-
     fileprivate let post: AbstractPost
-
     fileprivate let gutenberg: Gutenberg
-
     fileprivate let mediaCoordinator = MediaCoordinator.shared
-
     fileprivate var mediaObserverReceipt: UUID?
 
     /// Method of selecting media for upload, used for analytics
@@ -30,8 +26,32 @@ class GutenbergMediaInserterHelper: NSObject {
         self.unregisterMediaObserver()
     }
 
-    func insertFromSiteMediaLibrary(media: Media, callback: @escaping MediaPickerDidPickMediaCallback) {
-        callback(media.mediaID?.int32Value, media.remoteURL)
+    func insertFromSiteMediaLibrary(media: [Media], callback: @escaping MediaPickerDidPickMediaCallback) {
+        let formattedMedia = media.map { item in
+            return MediaInfo(id: item.mediaID?.int32Value, url: item.remoteURL, type: item.mediaTypeString)
+        }
+        callback(formattedMedia)
+    }
+
+    func insertFromDevice(assets: [PHAsset], callback: @escaping MediaPickerDidPickMediaCallback) {
+        var mediaCollection: [MediaInfo] = []
+        let group = DispatchGroup()
+        assets.forEach { asset in
+            group.enter()
+            insertFromDevice(asset: asset, callback: { media in
+                guard let media = media,
+                let selectedMedia = media.first else {
+                    group.leave()
+                    return
+                }
+                mediaCollection.append(selectedMedia)
+                group.leave()
+            })
+        }
+
+        group.notify(queue: .main) {
+            callback(mediaCollection)
+        }
     }
 
     func insertFromDevice(asset: PHAsset, callback: @escaping MediaPickerDidPickMediaCallback) {
@@ -44,26 +64,25 @@ class GutenbergMediaInserterHelper: NSObject {
         // Getting a quick thumbnail of the asset to display while the image is being exported and uploaded.
         PHImageManager.default().requestImage(for: asset, targetSize: asset.pixelSize(), contentMode: .default, options: options) { (image, info) in
             guard let thumbImage = image, let resizedImage = thumbImage.resizedImage(asset.pixelSize(), interpolationQuality: CGInterpolationQuality.low) else {
-                callback(mediaUploadID, nil)
+                callback([MediaInfo(id: mediaUploadID, url: nil, type: media.mediaTypeString)])
                 return
             }
             let filePath = NSTemporaryDirectory() + "\(mediaUploadID).jpg"
             let url = URL(fileURLWithPath: filePath)
             do {
                 try resizedImage.writeJPEGToURL(url)
-                callback(mediaUploadID, url.absoluteString)
+                callback([MediaInfo(id: mediaUploadID, url: url.absoluteString, type: media.mediaTypeString)])
             } catch {
-                callback(mediaUploadID, nil)
+                callback([MediaInfo(id: mediaUploadID, url: nil, type: media.mediaTypeString)])
                 return
             }
         }
-
     }
 
     func insertFromDevice(url: URL, callback: @escaping MediaPickerDidPickMediaCallback) {
         let media = insert(exportableAsset: url as NSURL, source: .otherApps)
         let mediaUploadID = media.gutenbergUploadID
-        callback(mediaUploadID, url.absoluteString)
+        callback([MediaInfo(id: mediaUploadID, url: url.absoluteString, type: media.mediaTypeString)])
     }
 
     func syncUploads() {
@@ -108,19 +127,9 @@ class GutenbergMediaInserterHelper: NSObject {
         return mediaCoordinator.hasFailedMedia(for: post)
     }
 
-    private func insert(exportableAsset: ExportableAsset, source: MediaSource) -> Media {
-        switch exportableAsset.assetMediaType {
-        case .image:
-            break
-        case .video:
-            break
-        default:
-            break
-        }
-
+    func insert(exportableAsset: ExportableAsset, source: MediaSource) -> Media {
         let info = MediaAnalyticsInfo(origin: .editor(source), selectionMethod: mediaSelectionMethod)
-        let media = mediaCoordinator.addMedia(from: exportableAsset, to: self.post, analyticsInfo: info)
-        return media
+        return mediaCoordinator.addMedia(from: exportableAsset, to: self.post, analyticsInfo: info)
     }
 
     private func registerMediaObserver() {

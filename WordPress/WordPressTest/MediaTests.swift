@@ -66,4 +66,42 @@ class MediaTests: XCTestCase {
             XCTFail("Error testing absolute thumbnail URLs: \(error)")
         }
     }
+
+    func testMediaHasAssociatedPost() {
+        let post = PostBuilder(context).build()
+        let media = newTestMedia()
+        media.addPostsObject(post)
+
+        XCTAssertTrue(media.hasAssociatedPost())
+    }
+
+    func testMediaHasntAssociatedPost() {
+        let media = newTestMedia()
+
+        XCTAssertFalse(media.hasAssociatedPost())
+    }
+
+    // MARK: - AutoUpload Failure Count
+
+    func testThatIncrementAutoUploadFailureCountWorks() {
+        let media = newTestMedia()
+
+        XCTAssertEqual(media.autoUploadFailureCount, 0)
+
+        media.incrementAutoUploadFailureCount()
+        XCTAssertEqual(media.autoUploadFailureCount, 1)
+
+        media.incrementAutoUploadFailureCount()
+        XCTAssertEqual(media.autoUploadFailureCount, 2)
+    }
+
+    func testThatResetAutoUploadFailureCountWorks() {
+        let media = newTestMedia()
+
+        media.incrementAutoUploadFailureCount()
+        media.incrementAutoUploadFailureCount()
+
+        media.resetAutoUploadFailureCount()
+        XCTAssertEqual(media.autoUploadFailureCount, 0)
+    }
 }

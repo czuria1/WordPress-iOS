@@ -1,6 +1,3 @@
-* Yararlı İstatistik Bilgileri: Toplam Takipçi, Bu Yıl ve En Popüler Zaman istatistikleri için iki sütunluk yeni düzenleri inceleyin.
-* Bu Yılla İlgili Yararlı Bilgiler: Daha Fazla Görüntüle seçeneğini tıklayarak bu yıla ait tüm gönderilerin, yorumların, beğenilerin vb. anlık bir görüntüsünü görün.
-* İstatistik Dönemleri: Ülkeler bölümüne bir dünya haritası eklendi.
-* Bazen yenileme yapıldığında istatistiklerin temizlenmesine yol açan sorun giderildi.
-* Siz yapıyorsunuz! Ben > Uygulama Ayarları > Uygulama Simgesi'ne giderek bir dizi uygulama simgesi içinden seçim yapın.
-* Uygulamanın renk planı yenilendi.
+- Blok düzenleyicisi: Bir "Medya ve Metin" bloğu ekledik! Görüntü Bloğu ayarlarına Bağlantı Hedefi (Yeni sekmede aç) seçeneği eklendi. “Yeni Fotoğraf Gönderisi” kısayolunun seçilen fotoğrafı eklemediği bir hata durumunu düzelttik.
+- İstatistikler: Artık Insights'ı özelleştirebilirsiniz. Insights yavaş ağlarda artık daha hızlı yükleniyor.
+- Karanlık Mod: Tüm uygulamada iyileştirmeler ve küçük hata düzeltmeleri yapıldı.

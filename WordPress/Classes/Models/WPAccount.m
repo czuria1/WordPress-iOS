@@ -16,6 +16,7 @@ static NSString * const WordPressComOAuthKeychainServiceName = @"public-api.word
 @dynamic username;
 @dynamic blogs;
 @dynamic defaultBlog;
+@dynamic primaryBlogID;
 @dynamic uuid;
 @dynamic dateCreated;
 @dynamic email;
@@ -148,7 +149,9 @@ static NSString * const WordPressComOAuthKeychainServiceName = @"public-api.word
                 }
             }];
         } else {
-            [WordPressAuthenticationManager showSigninForWPComFixingAuthToken];
+            dispatch_async(dispatch_get_main_queue(), ^{
+                [WordPressAuthenticationManager showSigninForWPComFixingAuthToken];
+            });
         }
     }
     return _wordPressComRestApi;

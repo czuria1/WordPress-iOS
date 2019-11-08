@@ -69,26 +69,148 @@ class SiteStatsPeriodViewModel: Observable {
                                                                                forceRefresh: true))
     }
 
+    func isFetchingChart() -> Bool {
+        return store.isFetchingSummary &&
+            mostRecentChartData == nil
+    }
+
+    func fetchingFailed() -> Bool {
+        return store.fetchingOverviewHasFailed
+    }
+
     // MARK: - Table Model
 
     func tableViewModel() -> ImmuTable {
 
         var tableRows = [ImmuTableRow]()
 
-        if !store.containsCachedData &&
-            (store.fetchingOverviewHasFailed || store.isFetchingOverview) {
-            return ImmuTable.Empty
+        if Feature.enabled(.statsAsyncLoadingDWMY) {
+            if !store.containsCachedData && store.fetchingOverviewHasFailed {
+                return ImmuTable.Empty
+            }
+        } else {
+            if !store.containsCachedData &&
+                (store.fetchingOverviewHasFailed || store.isFetchingOverview) {
+                return ImmuTable.Empty
+            }
         }
 
-        tableRows.append(contentsOf: overviewTableRows())
-        tableRows.append(contentsOf: postsAndPagesTableRows())
-        tableRows.append(contentsOf: referrersTableRows())
-        tableRows.append(contentsOf: clicksTableRows())
-        tableRows.append(contentsOf: authorsTableRows())
-        tableRows.append(contentsOf: countriesTableRows())
-        tableRows.append(contentsOf: searchTermsTableRows())
-        tableRows.append(contentsOf: publishedTableRows())
-        tableRows.append(contentsOf: videosTableRows())
+        let errorBlock: (StatSection) -> [ImmuTableRow] = { section in
+            return [CellHeaderRow(statSection: section),
+                    StatsErrorRow(rowStatus: .error, statType: .period)]
+        }
+        let summaryErrorBlock: AsyncBlock<[ImmuTableRow]> = {
+            return [PeriodEmptyCellHeaderRow(),
+                    StatsErrorRow(rowStatus: .error, statType: .period)]
+        }
+        let loadingBlock: (StatSection) -> [ImmuTableRow] = { section in
+            return [CellHeaderRow(statSection: section),
+                    StatsGhostTopImmutableRow()]
+        }
+
+        tableRows.append(contentsOf: blocks(for: .summary,
+                                            type: .period,
+                                            status: store.summaryStatus,
+                                            checkingCache: { [weak self] in
+                                                return self?.mostRecentChartData != nil
+            },
+                                            block: { [weak self] in
+                                                return self?.overviewTableRows() ?? summaryErrorBlock()
+            }, loading: {
+                return [PeriodEmptyCellHeaderRow(),
+                        StatsGhostChartImmutableRow()]
+        }, error: summaryErrorBlock))
+        tableRows.append(contentsOf: blocks(for: .topPostsAndPages,
+                                            type: .period,
+                                            status: store.topPostsAndPagesStatus,
+                                            block: { [weak self] in
+                                                return self?.postsAndPagesTableRows() ?? errorBlock(.periodPostsAndPages)
+            }, loading: {
+                return loadingBlock(.periodPostsAndPages)
+            }, error: {
+                return errorBlock(.periodPostsAndPages)
+        }))
+        tableRows.append(contentsOf: blocks(for: .topReferrers,
+                                            type: .period,
+                                            status: store.topReferrersStatus,
+                                            block: { [weak self] in
+                                                return self?.referrersTableRows() ?? errorBlock(.periodReferrers)
+            }, loading: {
+                return loadingBlock(.periodReferrers)
+            }, error: {
+                return errorBlock(.periodReferrers)
+        }))
+        tableRows.append(contentsOf: blocks(for: .topClicks,
+                                            type: .period,
+                                            status: store.topClicksStatus,
+                                            block: { [weak self] in
+                                                return self?.clicksTableRows() ?? errorBlock(.periodClicks)
+            }, loading: {
+                return loadingBlock(.periodClicks)
+            }, error: {
+                return errorBlock(.periodClicks)
+        }))
+        tableRows.append(contentsOf: blocks(for: .topAuthors,
+                                            type: .period,
+                                            status: store.topAuthorsStatus,
+                                            block: { [weak self] in
+                                                return self?.authorsTableRows() ?? errorBlock(.periodAuthors)
+            }, loading: {
+                return loadingBlock(.periodAuthors)
+            }, error: {
+                return errorBlock(.periodAuthors)
+        }))
+        tableRows.append(contentsOf: blocks(for: .topCountries,
+                                            type: .period,
+                                            status: store.topCountriesStatus,
+                                            block: { [weak self] in
+                                                return self?.countriesTableRows() ?? errorBlock(.periodCountries)
+            }, loading: {
+                return loadingBlock(.periodCountries)
+            }, error: {
+                return errorBlock(.periodCountries)
+        }))
+        tableRows.append(contentsOf: blocks(for: .topSearchTerms,
+                                            type: .period,
+                                            status: store.topSearchTermsStatus,
+                                            block: { [weak self] in
+                                                return self?.searchTermsTableRows() ?? errorBlock(.periodSearchTerms)
+            }, loading: {
+                return loadingBlock(.periodSearchTerms)
+            }, error: {
+                return errorBlock(.periodSearchTerms)
+        }))
+        tableRows.append(contentsOf: blocks(for: .topPublished,
+                                            type: .period,
+                                            status: store.topPublishedStatus,
+                                            block: { [weak self] in
+                                                return self?.publishedTableRows() ?? errorBlock(.periodPublished)
+            }, loading: {
+                return loadingBlock(.periodPublished)
+            }, error: {
+                return errorBlock(.periodPublished)
+        }))
+        tableRows.append(contentsOf: blocks(for: .topVideos,
+                                            type: .period,
+                                            status: store.topVideosStatus,
+                                            block: { [weak self] in
+                                                return self?.videosTableRows() ?? errorBlock(.periodVideos)
+            }, loading: {
+                return loadingBlock(.periodVideos)
+            }, error: {
+                return errorBlock(.periodVideos)
+        }))
+        tableRows.append(contentsOf: blocks(for: .topFileDownloads,
+                                            type: .period,
+                                            status: store.topFileDownloadsStatus,
+                                            block: { [weak self] in
+                                                return self?.fileDownloadsTableRows() ?? errorBlock(.periodFileDownloads)
+            }, loading: {
+                return loadingBlock(.periodFileDownloads)
+            }, error: {
+                return errorBlock(.periodFileDownloads)
+        }))
+
         tableRows.append(TableFooterRow())
 
         return ImmuTable(sections: [
@@ -142,7 +264,7 @@ private extension SiteStatsPeriodViewModel {
 
     func overviewTableRows() -> [ImmuTableRow] {
         var tableRows = [ImmuTableRow]()
-        tableRows.append(CellHeaderRow(title: ""))
+        tableRows.append(PeriodEmptyCellHeaderRow())
 
         let periodSummary = store.getSummary()
         let summaryData = periodSummary?.summaryData ?? []
@@ -260,7 +382,7 @@ private extension SiteStatsPeriodViewModel {
 
     func postsAndPagesTableRows() -> [ImmuTableRow] {
         var tableRows = [ImmuTableRow]()
-        tableRows.append(CellHeaderRow(title: StatSection.periodPostsAndPages.title))
+        tableRows.append(CellHeaderRow(statSection: StatSection.periodPostsAndPages))
         tableRows.append(TopTotalsPeriodStatsRow(itemSubtitle: StatSection.periodPostsAndPages.itemSubtitle,
                                                  dataSubtitle: StatSection.periodPostsAndPages.dataSubtitle,
                                                  dataRows: postsAndPagesDataRows(),
@@ -277,13 +399,13 @@ private extension SiteStatsPeriodViewModel {
 
             switch $0.kind {
             case .homepage:
-                icon = Style.imageForGridiconType(.house)
+                icon = Style.imageForGridiconType(.house, withTint: .icon)
             case .page:
-                icon = Style.imageForGridiconType(.pages)
+                icon = Style.imageForGridiconType(.pages, withTint: .icon)
             case .post:
-                icon = Style.imageForGridiconType(.posts)
+                icon = Style.imageForGridiconType(.posts, withTint: .icon)
             case .unknown:
-                icon = Style.imageForGridiconType(.posts)
+                icon = Style.imageForGridiconType(.posts, withTint: .icon)
             }
 
             return StatsTotalRowData(name: $0.title,
@@ -299,7 +421,7 @@ private extension SiteStatsPeriodViewModel {
 
     func referrersTableRows() -> [ImmuTableRow] {
         var tableRows = [ImmuTableRow]()
-        tableRows.append(CellHeaderRow(title: StatSection.periodReferrers.title))
+        tableRows.append(CellHeaderRow(statSection: StatSection.periodReferrers))
         tableRows.append(TopTotalsPeriodStatsRow(itemSubtitle: StatSection.periodReferrers.itemSubtitle,
                                                  dataSubtitle: StatSection.periodReferrers.dataSubtitle,
                                                  dataRows: referrersDataRows(),
@@ -339,7 +461,7 @@ private extension SiteStatsPeriodViewModel {
 
     func clicksTableRows() -> [ImmuTableRow] {
         var tableRows = [ImmuTableRow]()
-        tableRows.append(CellHeaderRow(title: StatSection.periodClicks.title))
+        tableRows.append(CellHeaderRow(statSection: StatSection.periodClicks))
         tableRows.append(TopTotalsPeriodStatsRow(itemSubtitle: StatSection.periodClicks.itemSubtitle,
                                                  dataSubtitle: StatSection.periodClicks.dataSubtitle,
                                                  dataRows: clicksDataRows(),
@@ -364,7 +486,7 @@ private extension SiteStatsPeriodViewModel {
 
     func authorsTableRows() -> [ImmuTableRow] {
         var tableRows = [ImmuTableRow]()
-        tableRows.append(CellHeaderRow(title: StatSection.periodAuthors.title))
+        tableRows.append(CellHeaderRow(statSection: StatSection.periodAuthors))
         tableRows.append(TopTotalsPeriodStatsRow(itemSubtitle: StatSection.periodAuthors.itemSubtitle,
                                                  dataSubtitle: StatSection.periodAuthors.dataSubtitle,
                                                  dataRows: authorsDataRows(),
@@ -388,7 +510,7 @@ private extension SiteStatsPeriodViewModel {
 
     func countriesTableRows() -> [ImmuTableRow] {
         var tableRows = [ImmuTableRow]()
-        tableRows.append(CellHeaderRow(title: StatSection.periodCountries.title))
+        tableRows.append(CellHeaderRow(statSection: StatSection.periodCountries))
         let map = countriesMap()
         if !map.data.isEmpty {
             tableRows.append(CountriesMapRow(countriesMap: map))
@@ -421,7 +543,7 @@ private extension SiteStatsPeriodViewModel {
 
     func searchTermsTableRows() -> [ImmuTableRow] {
         var tableRows = [ImmuTableRow]()
-        tableRows.append(CellHeaderRow(title: StatSection.periodSearchTerms.title))
+        tableRows.append(CellHeaderRow(statSection: StatSection.periodSearchTerms))
         tableRows.append(TopTotalsPeriodStatsRow(itemSubtitle: StatSection.periodSearchTerms.itemSubtitle,
                                                  dataSubtitle: StatSection.periodSearchTerms.dataSubtitle,
                                                  dataRows: searchTermsDataRows(),
@@ -456,7 +578,7 @@ private extension SiteStatsPeriodViewModel {
 
     func publishedTableRows() -> [ImmuTableRow] {
         var tableRows = [ImmuTableRow]()
-        tableRows.append(CellHeaderRow(title: StatSection.periodPublished.title))
+        tableRows.append(CellHeaderRow(statSection: StatSection.periodPublished))
         tableRows.append(TopTotalsNoSubtitlesPeriodStatsRow(dataRows: publishedDataRows(),
                                                             siteStatsPeriodDelegate: periodDelegate))
 
@@ -474,7 +596,7 @@ private extension SiteStatsPeriodViewModel {
 
     func videosTableRows() -> [ImmuTableRow] {
         var tableRows = [ImmuTableRow]()
-        tableRows.append(CellHeaderRow(title: StatSection.periodVideos.title))
+        tableRows.append(CellHeaderRow(statSection: StatSection.periodVideos))
         tableRows.append(TopTotalsPeriodStatsRow(itemSubtitle: StatSection.periodVideos.itemSubtitle,
                                                  dataSubtitle: StatSection.periodVideos.dataSubtitle,
                                                  dataRows: videosDataRows(),
@@ -493,4 +615,30 @@ private extension SiteStatsPeriodViewModel {
             ?? []
     }
 
+    func fileDownloadsTableRows() -> [ImmuTableRow] {
+        var tableRows = [ImmuTableRow]()
+        tableRows.append(CellHeaderRow(statSection: StatSection.periodFileDownloads))
+        tableRows.append(TopTotalsPeriodStatsRow(itemSubtitle: StatSection.periodFileDownloads.itemSubtitle,
+                                                 dataSubtitle: StatSection.periodFileDownloads.dataSubtitle,
+                                                 dataRows: fileDownloadsDataRows(),
+                                                 siteStatsPeriodDelegate: periodDelegate))
+
+        return tableRows
+    }
+
+    func fileDownloadsDataRows() -> [StatsTotalRowData] {
+        return store.getTopFileDownloads()?.fileDownloads.prefix(10).map { StatsTotalRowData(name: $0.file,
+                                                                                             data: $0.downloadCount.abbreviatedString(),
+                                                                                             statSection: .periodFileDownloads) }
+            ?? []
+    }
+
+}
+
+extension SiteStatsPeriodViewModel: AsyncBlocksLoadable {
+    typealias RowType = PeriodType
+
+    var currentStore: StatsPeriodStore {
+        return store
+    }
 }
